@@ -4,7 +4,7 @@ import time
 # one central node, receive request from all other nodes
 # other nodes runs local pow
 class BlockChain:
-    def __init__(self, chain_id, propagation_power):
+    def __init__(self, chain_id, propagation_power, selfish = False):
         """
         Args:
             propagation_power (int): a number representing the power of be propagated,
@@ -15,6 +15,7 @@ class BlockChain:
         self.chain_id = chain_id
         self.chain = []
         self.propagation_power = propagation_power
+        self.selfish  = selfish
 
     def __str__(self):
         return str(self.chain)
@@ -142,18 +143,31 @@ class MonitorNode:
 
 
 class MinerNode:
-    def __init__(self, comm, id, pow, compute_delay):
+    def __init__(self, comm, id, pow, compute_delay, selfish = False):
         print(f"Miner {id} running...")
         self.comm = comm
         self.id = id
         self.pow = pow
         self.compute_delay = compute_delay
+        self.selfish = selfish
+        self.blockchains = None
+
+    def anounce_block(self, chain):
+        self.comm.isend(chain, dest=0)
+
+    def mining(self):
+        nounce = self.pow.try_POW()
+        time.sleep(self.compute_delay)
+        if nounce:
+            print(f"Miner {rank} finds a block!")
+            chain = self.blockchains.get_longest_chain()
+            chain.append_chain(self.id)
+            self.anounce_block(chain)
 
     def run(self, simulation_time):
         start = time.time()
-        blockchains = None
         # collect initial blockchain tree
-        blockchains = self.comm.bcast(blockchains, root=0)
+        self.blockchains = self.comm.bcast(self.blockchains, root=0)
 
         # initial blockchain update request from monitor node
         bc_update_req = self.comm.irecv(source=0, tag=0)
@@ -162,17 +176,19 @@ class MinerNode:
             # check if there is update to the blockchain tree
             res = bc_update_req.test()
             if res[0]:
-                blockchains = res[1]
+                self.blockchains = res[1]
                 bc_update_req = self.comm.irecv(source=0, tag=0)
 
             # start mining
-            nounce = self.pow.try_POW()
-            time.sleep(self.compute_delay)
-            if nounce:
-                print(f"Miner {rank} finds a block!")
-                chain = blockchains.get_longest_chain()
-                chain.append_chain(self.id)
-                self.comm.isend(chain, dest=0)
+            self.mining()
+            # nounce = self.pow.try_POW()
+            # time.sleep(self.compute_delay)
+            # if nounce:
+            #     print(f"Miner {rank} finds a block!")
+            #     chain = blockchains.get_longest_chain()
+            #     chain.append_chain(self.id)
+            #     self.comm.isend(chain, dest=0)
+
 
 if __name__ == '__main__':
     from mpi4py import MPI
@@ -184,7 +200,7 @@ if __name__ == '__main__':
         monitor = MonitorNode(comm, pow)
         monitor.run(60)
     else:
-        miner = MinerNode(comm, rank, pow)
+        miner = MinerNode(comm, rank, pow, 0.1)
         miner.run(60)
 
 
