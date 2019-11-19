@@ -87,10 +87,16 @@ class POW:
         """
         self.difficulty = difficulty
         self.bound = difficulty_bound
+        self.count = 0
 
     def try_POW(self):
         nounce = random.randint(0, self.bound)
+        self.count += 1
+        if self.count % 100 == 0:
+            print(f"POW is tried {self.count} times")
+
         if nounce < self.difficulty:
+            self.count = 0
             return nounce
 
 class MonitorNode:
@@ -101,40 +107,56 @@ class MonitorNode:
             bandwidth (int): number of request that can be broadcast in the network per minute
             network_delay: in sec the delay to broadcast a message
         """
-        print("Monitor Running...")
         self.comm = comm
         self.bandwidth = bandwidth
         self.network_delay = network_delay
         self.pow = pow
         self.blockchains = BlockChainTree()
 
-    def run(self, simulation_time):
-        counter = 0
+    def broadcast_blockchain(self):
+        blockchains = self.blockchains
+        for i in range(1, self.comm.size):
+            self.comm.isend(blockchains, dest=i, tag=0)
+        print(blockchains)
+
+    def run(self, simulation_time, miners):
+        print("Monitor running...")
         start = int(time.time())
         responses = {}
         # assumes monitor node is rank 0
-        for i in range(1, self.comm.size):
-            responses[i] = self.comm.irecv(source=i)
+        for miner in miners:
+            miner.wait()
+        # for i in range(1, self.comm.size):
+        #     responses[i] = self.comm.irecv(source=i)
         past_time = None
 
         # send blockchain tree initial state
-        self.comm.bcast(self.blockchains, root=0)
+        # self.comm.bcast(self.blockchains, root=0)
+
         while time.time() - start < simulation_time:
             update_flag = False
-            for i in range(1, self.comm.size):
-                # check if target miner has a solution
-                res = responses[i].test()
-                if res[0]:
+            # for i in range(1, self.comm.size):
+            #     # check if target miner has a solution
+            #     res = responses[i].test()
+            #     if res[0]:
+            #         update_flag = True
+            #         self.blockchains.update(res[1])
+            #         responses[i] = self.comm.irecv(source=i)
+            for miner in miners:
+                res = miner.test()
+                if res:
                     update_flag = True
-                    self.blockchains.update(res[1])
-                    responses[i] = self.comm.irecv(source=i)
+                    self.blockchains.update(res)
+                    miner.wait()
 
+            # if update_flag:
+            #     # broadcast the newest blockchain state
+            #     blockchains = self.blockchains
+            #     for i in range(1, self.comm.size):
+            #         self.comm.isend(blockchains, dest=i, tag=0)
+            #     print(blockchains)
             if update_flag:
-                # broadcast the newest blockchain state
-                blockchains = self.blockchains
-                for i in range(1, self.comm.size):
-                    self.comm.isend(blockchains, dest=i, tag=0)
-                print(blockchains)
+                self.broadcast_blockchain()
 
             current_time = int(time.time()) - start
             if current_time % 5 == 0 and past_time != current_time:
@@ -144,13 +166,28 @@ class MonitorNode:
 
 class MinerNode:
     def __init__(self, comm, id, pow, compute_delay, selfish = False):
-        print(f"Miner {id} running...")
         self.comm = comm
         self.id = id
         self.pow = pow
         self.compute_delay = compute_delay
         self.selfish = selfish
-        self.blockchains = None
+        self.blockchains = BlockChainTree()
+        self.res = None # response used by monitor node
+
+    def wait(self):
+        """
+        Called by monitor node to wait for response
+        """
+        self.res = self.comm.irecv(source=self.id)
+
+    def test(self):
+        """
+        Called by monitor node to get update
+        """
+        res = self.res.test()
+        if res[0]:
+            self.update_flag = True
+            return res[1]
 
     def anounce_block(self, chain):
         self.comm.isend(chain, dest=0)
@@ -165,9 +202,10 @@ class MinerNode:
             self.anounce_block(chain)
 
     def run(self, simulation_time):
+        print(f"Miner {self.id} running...")
         start = time.time()
         # collect initial blockchain tree
-        self.blockchains = self.comm.bcast(self.blockchains, root=0)
+        # self.blockchains = self.comm.bcast(self.blockchains, root=0)
 
         # initial blockchain update request from monitor node
         bc_update_req = self.comm.irecv(source=0, tag=0)
@@ -196,26 +234,10 @@ if __name__ == '__main__':
     rank = comm.Get_rank()
 
     pow = POW(10, 100)
+    monitor = MonitorNode(comm, pow)
+    miners = [MinerNode(comm, i, pow, 0.1) for i in range(1, comm.size)]
     if rank == 0:
-        monitor = MonitorNode(comm, pow)
-        monitor.run(60)
+        monitor.run(60, miners)
     else:
-        miner = MinerNode(comm, rank, pow, 0.1)
+        miner = miners[rank - 1]
         miner.run(60)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
