@@ -117,44 +117,23 @@ class MonitorNode:
         blockchains = self.blockchains
         for i in range(1, self.comm.size):
             self.comm.isend(blockchains, dest=i, tag=0)
-        print(blockchains)
+        # print(blockchains)
 
     def run(self, simulation_time, miners):
         print("Monitor running...")
         start = int(time.time())
-        responses = {}
         # assumes monitor node is rank 0
         for miner in miners:
             miner.wait()
-        # for i in range(1, self.comm.size):
-        #     responses[i] = self.comm.irecv(source=i)
         past_time = None
-
-        # send blockchain tree initial state
-        # self.comm.bcast(self.blockchains, root=0)
-
         while time.time() - start < simulation_time:
             update_flag = False
-            # for i in range(1, self.comm.size):
-            #     # check if target miner has a solution
-            #     res = responses[i].test()
-            #     if res[0]:
-            #         update_flag = True
-            #         self.blockchains.update(res[1])
-            #         responses[i] = self.comm.irecv(source=i)
             for miner in miners:
                 res = miner.test()
                 if res:
                     update_flag = True
                     self.blockchains.update(res)
                     miner.wait()
-
-            # if update_flag:
-            #     # broadcast the newest blockchain state
-            #     blockchains = self.blockchains
-            #     for i in range(1, self.comm.size):
-            #         self.comm.isend(blockchains, dest=i, tag=0)
-            #     print(blockchains)
             if update_flag:
                 self.broadcast_blockchain()
 
@@ -162,7 +141,6 @@ class MonitorNode:
             if current_time % 5 == 0 and past_time != current_time:
                 print(f"Time: {current_time} sec")
                 past_time = current_time
-
 
 class MinerNode:
     def __init__(self, comm, id, pow, compute_delay, selfish = False):
@@ -186,11 +164,14 @@ class MinerNode:
         """
         res = self.res.test()
         if res[0]:
-            self.update_flag = True
+            self.res = self.comm.irecv(source=self.id)
             return res[1]
 
     def anounce_block(self, chain):
         self.comm.isend(chain, dest=0)
+
+    def update_blockchain(self, blockchains):
+        self.blockchains = blockchains
 
     def mining(self):
         nounce = self.pow.try_POW()
@@ -204,9 +185,6 @@ class MinerNode:
     def run(self, simulation_time):
         print(f"Miner {self.id} running...")
         start = time.time()
-        # collect initial blockchain tree
-        # self.blockchains = self.comm.bcast(self.blockchains, root=0)
-
         # initial blockchain update request from monitor node
         bc_update_req = self.comm.irecv(source=0, tag=0)
 
@@ -214,18 +192,45 @@ class MinerNode:
             # check if there is update to the blockchain tree
             res = bc_update_req.test()
             if res[0]:
-                self.blockchains = res[1]
+                self.update_blockchain(res[1])
                 bc_update_req = self.comm.irecv(source=0, tag=0)
-
             # start mining
             self.mining()
-            # nounce = self.pow.try_POW()
-            # time.sleep(self.compute_delay)
-            # if nounce:
-            #     print(f"Miner {rank} finds a block!")
-            #     chain = blockchains.get_longest_chain()
-            #     chain.append_chain(self.id)
-            #     self.comm.isend(chain, dest=0)
+
+class SelfishMinerNode(MinerNode):
+    def __init__(self, comm, id, pow, compute_delay):
+        super().__init__(comm, id, pow, compute_delay)
+        self.private_chain = None
+        self.selfish = True
+
+    def update_blockchain(self, blockchains):
+        self.blockchains = blockchains
+        public_chain = self.blockchains.get_longest_chain()
+        private_chain = self.private_chain
+        print("==========================================================")
+        print(f"publich chain: {self.blockchains}")
+        print(f"private chain: {private_chain}")
+        print("==========================================================")
+        print()
+        if private_chain is None or len(public_chain.chain) > len(private_chain.chain):
+            self.private_chain = public_chain
+        elif len(public_chain.chain) == len(private_chain.chain):
+            private_chain.propagation_power = 2
+            self.comm.isend(private_chain, dest=0)
+        elif len(public_chain.chain) == len(private_chain.chain) - 1:
+            private_chain.propagation_power = 2
+            self.comm.isend(private_chain, dest=0)
+        else:
+            pass
+
+    def mining(self):
+        nounce = self.pow.try_POW()
+        time.sleep(self.compute_delay)
+        if nounce:
+            print(f"Selfish Miner {rank} finds a block!")
+            if self.private_chain is None:
+                self.private_chain = self.blockchains.get_longest_chain()
+            self.private_chain.append_chain(self.id)
 
 
 if __name__ == '__main__':
@@ -233,9 +238,14 @@ if __name__ == '__main__':
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
 
+    SELFISH_MINER_COUNT = 1
+
     pow = POW(10, 100)
     monitor = MonitorNode(comm, pow)
-    miners = [MinerNode(comm, i, pow, 0.1) for i in range(1, comm.size)]
+    miners = [SelfishMinerNode(comm, i, pow, 0.1) for i in range(1, 1+SELFISH_MINER_COUNT)]
+    for i in range(1+SELFISH_MINER_COUNT, comm.size):
+        miners.append(MinerNode(comm, i, pow, 0.1))
+
     if rank == 0:
         monitor.run(60, miners)
     else:
