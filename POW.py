@@ -1,4 +1,5 @@
 import random
+from Block import Block
 
 
 class POW:
@@ -11,16 +12,17 @@ class POW:
         """
         self.difficulty = difficulty
         self.bound = difficulty_bound
-        self.count = 0
+        # self.count = 0
         self.block_count = 0 # keep track of global block count
+        self.prime_block = Block(0, -1, 0, -1, 1)
 
     def try_POW(self):
         nounce = random.randint(0, self.bound)
-        self.count += 1
-        if self.count % 100 == 0:
-            print(f"POW is tried {self.count} times")
+        # self.count += 1
+        # if self.count % 100 == 0:
+        #     print(f"POW is tried {self.count} times")
 
         if nounce < self.difficulty:
-            self.count = 0
+            # self.count = 0
             self.block_count += 1
             return nounce
