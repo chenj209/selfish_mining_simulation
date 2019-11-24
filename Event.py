@@ -40,7 +40,8 @@ class ReceiveNewBlockEvent(Event):
         self.direction = 0 # 0 for download, 1 for upload
 
     def process(self, miner):
-        if miner.update_blockchain(self.block):
+        miner.update_blockchain(self.block)
+        if self.block.id not in miner.notified_blocks:
             miner.notify_neighbours(self.block)
 
 class SendNewBlockEvent(Event):
@@ -52,6 +53,7 @@ class SendNewBlockEvent(Event):
         self.direction = 1 # 0 for download, 1 for upload
 
     def process(self, miner):
+        miner.notified_blocks.append(self.block.id)
         new_event = ReceiveNewBlockEvent(miner.clock + miner.delay, self.block)
         update_event(new_event, self.dest.recv_events)
 

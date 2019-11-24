@@ -16,6 +16,7 @@ class Miner:
         self.send_events = [] # events that need to be sent to neighbours
         self.neighbours = []
         self.blocks = {}
+        self.notified_blocks = []
         self.longest_chain_heads = [pow.prime_block] # priority queue of longest chain heads
 
     def mine(self):

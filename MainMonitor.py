@@ -43,7 +43,7 @@ class MainMonitor:
 if __name__ == '__main__':
     from POW import POW
     pow = POW(20, 100000)
-    monitor = MainMonitor(pow, miner_count=1000, neighbour_count=32, delay=1, bandwidth=1000, hash_power=2)
+    monitor = MainMonitor(pow, miner_count=1000, neighbour_count=32, delay=2, bandwidth=1000, hash_power=2)
     monitor.run_simulation(100)
 
 
