@@ -36,14 +36,15 @@ class MainMonitor:
             self.clock += 1
             if self.clock % 10 == 0:
                 print(f"Clock: {self.clock}, Block Count: {pow.block_count}")
+                # print(self.pow.prime_block.subtree_str(blocks))
                 print(self.pow.prime_block.subtree_str(blocks))
                 print("=====================================================")
 
 
 if __name__ == '__main__':
     from POW import POW
-    pow = POW(20, 100000)
-    monitor = MainMonitor(pow, miner_count=1000, neighbour_count=32, delay=2, bandwidth=1000, hash_power=2)
+    pow = POW(20, 10000)
+    monitor = MainMonitor(pow, miner_count=1000, neighbour_count=32, delay=20, bandwidth=100, hash_power=1000)
     monitor.run_simulation(100)
 
 

@@ -24,6 +24,26 @@ class Block:
         #     ret += blocks[child].subtree_str(blocks, level + 1)
         return ret
 
+    # def subtree_str2(self, blocks, level=0):
+    #     ret = f"<{'{0:0=4d}'.format(self.id)},{'{0:0=4d}'.format(self.miner_id)}> | "
+    #     placeholder = " " * 14
+    #     children_str_tokens = []
+    #     children_str = [blocks[child].subtree_str2(blocks, level + 1) for child in self.children]
+    #     children_str.sort(key=lambda s: s.count("\n"), reverse=True)
+    #     for child_str in children_str:
+    #         ret += placeholder
+    #         tokens = child_str.strip("\n").split("\n")
+    #         i = 0
+    #         while i < min(len(children_str_tokens), len(tokens)):
+    #             children_str_tokens[i] += tokens[i]
+    #             i += 1
+    #         if i < len(tokens):
+    #             children_str_tokens.extend(tokens[i:])
+    #     ret = ret[:-1] + "|"
+    #     return ret + "\n" + "\n".join(children_str_tokens)
+    #
+
+
 
 
 

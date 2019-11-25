@@ -23,7 +23,7 @@ class Miner:
         block_head = self.longest_chain_heads[0]
         nounce =  self.pow.try_POW()
         if nounce:
-            new_block =  Block(self.pow.block_count, self.id, block_head.id, self.clock, block_head.height + 1)
+            new_block =  Block(self.pow.block_count, self.id, self.clock, block_head.id, block_head.height + 1)
             block_head.children.append(new_block.id)
             return new_block
 
