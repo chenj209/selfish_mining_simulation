@@ -13,8 +13,9 @@ class POW:
         self.difficulty = difficulty
         self.bound = difficulty_bound
         # self.count = 0
-        self.block_count = 0 # keep track of global block count
+        self.block_count = 1 # keep track of global block count
         self.prime_block = Block(0, -1, 0, -1, 1)
+        self.prime_block.notified_miner_count = 1000
 
     def try_POW(self):
         nounce = random.randint(0, self.bound)

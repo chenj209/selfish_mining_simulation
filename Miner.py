@@ -1,5 +1,6 @@
 from Block import Block
 from Event import SendNewBlockEvent, process_event
+import random
 
 
 class Miner:
@@ -40,8 +41,9 @@ class Miner:
         block_head = self.longest_chain_heads[0]
         nounce =  self.pow.try_POW()
         if nounce:
-            new_block =  Block(self.pow.block_count, self.id, self.clock, block_head.id, block_head.height + 1)
+            new_block =  Block(self.pow.block_count-1, self.id, self.clock, block_head.id, block_head.height + 1)
             block_head.add_child(new_block.id)
+            self.blocks[new_block.id] = new_block
             return new_block
 
 
@@ -56,6 +58,7 @@ class Miner:
         """
         if block.id not in self.blocks:
             self.blocks[block.id] = block
+            block.notified_miner_count += 1
             if block.height > self.longest_chain_heads[0].height:
                 self.longest_chain_heads = [block]
             elif block.height == self.longest_chain_heads:
@@ -73,6 +76,8 @@ class Miner:
         Args:
             block: Block object to notify
         """
+        self.notified_blocks.append(block.id)
+        random.shuffle(self.neighbours)
         for neighbour in self.neighbours:
             new_event = SendNewBlockEvent(self.clock, block, neighbour)
             self.send_events.append(new_event)
@@ -91,6 +96,8 @@ class Miner:
         # process each received events that is greater than current clock time
         # up to self.download_bandwidth times, unprocessed events will be processed
         # in next timestamp
+        # if len(self.recv_events) > 0:
+        #     print("wtf")
         process_event(self, self.recv_events, self.download_bandwidth)
 
         new_blocks = []
@@ -103,7 +110,10 @@ class Miner:
         # process each send events that is greater than current clock time
         # up to self.upload_bandwidth times, unprocessed events will be processed
         # in next timestamp
+        # if len(self.send_events) > 0:
+            # print("wtf")
         process_event(self, self.send_events, self.upload_bandwidth)
+        self.clock += 1
 
         return new_blocks
 

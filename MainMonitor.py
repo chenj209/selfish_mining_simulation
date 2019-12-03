@@ -16,6 +16,7 @@
 from Miner import Miner
 from NetworkTopology import NetworkGraphGen
 import random
+random.seed(2125)
 
 class MainMonitor:
     def __init__(self, pow, miner_count, neighbour_count, delay, bandwidth, hash_power=1):
@@ -27,6 +28,7 @@ class MainMonitor:
 
     def run_simulation(self, time):
         blocks = {0: self.pow.prime_block}
+        # dict{block_id: (block object, propagate count)}
         while self.clock < time:
             random.shuffle(self.miners)
             for miner in self.miners:
@@ -43,9 +45,10 @@ class MainMonitor:
 
 if __name__ == '__main__':
     from POW import POW
-    pow = POW(10, 50000)
-    monitor = MainMonitor(pow, miner_count=1000, neighbour_count=128, delay=1, bandwidth=1000000, hash_power=1)
-    monitor.run_simulation(100)
+    pow = POW(10, 1000000)
+    monitor = MainMonitor(pow, miner_count=1000, neighbour_count=32, delay=5, bandwidth=10, hash_power=1)
+    # monitor = MainMonitor(pow, miner_count=1000, neighbour_count=128, delay=2, bandwidth=32, hash_power=1)
+    monitor.run_simulation(2000)
 
 
 

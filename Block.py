@@ -16,6 +16,7 @@ class Block:
         self.other_children = [] # invalid childrens
         self.uncles = uncle_ids # ids of uncles
         self.height = height
+        self.notified_miner_count = 1
 
     def add_child(self, child_id):
         # currently assumes only first three children is valid
@@ -26,7 +27,7 @@ class Block:
 
 
     def subtree_str(self, blocks, level=0):
-        ret = "\t" * level + f"<{self.id},{self.miner_id}>" + "\n"
+        ret = "\t" * level + f"<{self.id},{self.miner_id},{self.notified_miner_count}>" + "\n"
         children_str = [blocks[child].subtree_str(blocks, level + 1) for child in self.children]
         children_str.sort(key=lambda s: len(s))
         ret += "".join(children_str)
