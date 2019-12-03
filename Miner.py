@@ -19,16 +19,14 @@ class Miner:
         # pow that is shared among all miners
         self.delay = delay
         # number of timestamp added to upload event timestamp when sent
-        self.recv_events = []
-        # future events to process
-        self.send_events = []
-        # events that need to be sent to neighbours
+        self.recv_events = {}
+        # dictionary of future events to process, using timestamp as key
+        self.send_events = {}
+        # dictionary of events that need to be sent to neighbours, using timestamp as key
         self.neighbours = []
         # Miner object of neighbours of this miner
         self.blocks = {}
         # dict{block_id: block object}, received blocks
-        self.notified_blocks = []
-        # currently each new block will be sent to each neighbour once, keep track of this
         self.longest_chain_heads = [pow.prime_block]
         # priority queue of longest chain heads, currently managed using timestamp
 
@@ -76,11 +74,12 @@ class Miner:
         Args:
             block: Block object to notify
         """
-        self.notified_blocks.append(block.id)
         random.shuffle(self.neighbours)
         for neighbour in self.neighbours:
             new_event = SendNewBlockEvent(self.clock, block, neighbour)
-            self.send_events.append(new_event)
+            if new_event.timestamp not in self.send_events:
+                self.send_events[new_event.timestamp] = []
+            self.send_events[new_event.timestamp].append(new_event)
 
     def run(self):
         """
