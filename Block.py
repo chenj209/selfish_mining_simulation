@@ -1,5 +1,5 @@
 class Block:
-    def __init__(self, id, miner_id, timestamp, parent_id, height):
+    def __init__(self, id, miner_id, timestamp, parent_id, height, uncle_ids=[]):
         """
         Represent a block in the blockchain
         Args:
@@ -13,7 +13,17 @@ class Block:
         self.timestamp = timestamp
         self.parent_id = parent_id
         self.children = [] # ids of children
+        self.other_children = [] # invalid childrens
+        self.uncles = uncle_ids # ids of uncles
         self.height = height
+
+    def add_child(self, child_id):
+        # currently assumes only first three children is valid
+        if len(self.children) < 3:
+            self.children.append(child_id)
+        else:
+            self.other_children.append(child_id)
+
 
     def subtree_str(self, blocks, level=0):
         ret = "\t" * level + f"<{self.id},{self.miner_id}>" + "\n"

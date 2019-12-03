@@ -21,7 +21,7 @@ class MainMonitor:
     def __init__(self, pow, miner_count, neighbour_count, delay, bandwidth, hash_power=1):
         # init <miner_count> miners
         self.pow = pow
-        self.miners = [Miner(i, pow, delay, bandwidth) for i in range(miner_count)]
+        self.miners = [Miner(i, pow, delay, bandwidth, hash_power) for i in range(miner_count)]
         NetworkGraphGen.random_graph(self.miners, neighbour_count)
         self.clock = 0
 
@@ -43,8 +43,8 @@ class MainMonitor:
 
 if __name__ == '__main__':
     from POW import POW
-    pow = POW(20, 10000)
-    monitor = MainMonitor(pow, miner_count=1000, neighbour_count=32, delay=20, bandwidth=100, hash_power=1000)
+    pow = POW(10, 50000)
+    monitor = MainMonitor(pow, miner_count=1000, neighbour_count=128, delay=1, bandwidth=1000000, hash_power=1)
     monitor.run_simulation(100)
 
 
