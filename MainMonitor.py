@@ -1,4 +1,3 @@
-PLOT_GRAPHVIZ = True
 # def get_longest_chain(prime_block, blocks):
 #     """
 #     Perform a BFS to return the block heads of the longest chain, sorted in timestamp order
@@ -19,7 +18,6 @@ from NetworkTopology import NetworkGraphGen
 import random
 # import networkx as nx
 # import matplotlib.pyplot as plt
-from graphviz import Digraph
 
 
 random.seed(2125)
@@ -34,8 +32,6 @@ class MainMonitor:
 
     def run_simulation(self, time):
         blocks = {0: self.pow.prime_block}
-        G = Digraph(comment="Blockchain state")
-        G.node(str(self.pow.prime_block.id), label=str(self.pow.prime_block))
         # dict{block_id: (block object, propagate count)}
         while self.clock < time:
             random.shuffle(self.miners)
@@ -43,14 +39,10 @@ class MainMonitor:
                 new_blocks = miner.run()
                 for new_block in new_blocks:
                     blocks[new_block.id] = new_block
-                    G.node(str(new_block.id), label=str(new_block))
-                    G.edge(str(new_block.id), str(blocks[new_block.parent_id].id))
             self.clock += 1
             if self.clock % 10 == 0:
                 print(f"Clock: {self.clock}, Block Count: {pow.block_count}")
                 print(self.pow.prime_block.subtree_str(blocks))
-                if PLOT_GRAPHVIZ is True:
-                    G.render('test-output/blockchain.gv')
                 # print(self.pow.prime_block.subtree_str(blocks))
                 # print("=====================================================")
                 # nx.draw_planar(G, with_labels=True)
