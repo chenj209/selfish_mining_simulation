@@ -25,6 +25,9 @@ class Block:
         else:
             self.other_children.append(child_id)
 
+    def __str__(self):
+        return f"ID:{self.id}\nMID:{self.miner_id}"
+
 
     def subtree_str(self, blocks, level=0):
         ret = "\t" * level + f"<{self.id},{self.miner_id},{self.notified_miner_count}>" + "\n"
