@@ -69,12 +69,12 @@ class MainMonitor:
                 # nx.draw_networkx(G,with_labels=True)
                 # nx.draw(G, with_labels=True)
 
-        regular_rewards, uncle_rewards = reward(blocks, last_block_id)
+        regular_rewards, uncle_rewards = self.reward(blocks, last_block_id)
     
     # assume a block earns the miner 32 unit 
     def reward(self, blocks, last_block_id):
-        longest_chain = find_longest_chain(blocks, last_block_id)
-        uncles, nephews = find_uncles_nephews(blocks, longest_chain)
+        longest_chain = self.find_longest_chain(blocks, last_block_id)
+        uncles, nephews = self.find_uncles_nephews(blocks, longest_chain)
         # regular reward dict {miner_id: reward}
         regular_rewards = {}
         # uncle reward dict {miner_id: reward}
@@ -102,14 +102,14 @@ class MainMonitor:
                 uncle_rewards[temp_miner_id] = 0
             # compute reward amount
             if uncles[uncle_id] <= 6:
-                temp_reward = (8 - distance)*4
+                temp_reward = (8 - uncles[uncle_id])*4
                 uncle_rewards[temp_miner_id] += temp_reward
             # trivia but save for future modification
             else:
                 temp_reward = 0
                 uncle_rewards[temp_miner_id] += temp_reward
     
-    return regular_rewards, uncle_rewards
+        return regular_rewards, uncle_rewards
 
     def find_longest_chain(self, blocks, last_block_id):
         # longest chain list
