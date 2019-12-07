@@ -15,7 +15,7 @@ class POW:
         # self.count = 0
         self.block_count = 1 # keep track of global block count
         self.prime_block = Block(0, -1, 0, -1, 1)
-        self.prime_block.notified_miner_count = 1000
+        self.prime_block.notified_miner_count = -1
 
     def try_POW(self):
         nounce = random.randint(0, self.bound)
@@ -26,4 +26,4 @@ class POW:
         if nounce < self.difficulty:
             # self.count = 0
             self.block_count += 1
-            return nounce
+            return True
