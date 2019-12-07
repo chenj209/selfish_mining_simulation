@@ -26,7 +26,7 @@ class Block:
             self.other_children.append(child_id)
 
     def __str__(self):
-        return f"ID:{self.id}\nMID:{self.miner_id}"
+        return f"ID:{self.id}\nMID:{self.miner_id}\nPR:{self.notified_miner_count}"
 
 
     def subtree_str(self, blocks, level=0):

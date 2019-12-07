@@ -22,7 +22,6 @@ import random
 from graphviz import Digraph
 
 
-random.seed(2125)
 
 class MainMonitor:
     def __init__(self, pow, miner_count, neighbour_count, delay, bandwidth, hash_power=1, configuration="selfish1"):
@@ -41,8 +40,6 @@ class MainMonitor:
 
     def run_simulation(self, time):
         blocks = {0: self.pow.prime_block}
-        G = Digraph(comment="Blockchain state")
-        G.node(str(self.pow.prime_block.id), label=str(self.pow.prime_block))
         # dict{block_id: (block object, propagate count)}
         while self.clock < time:
             random.shuffle(self.miners)
@@ -52,15 +49,22 @@ class MainMonitor:
                 for new_block in new_blocks:
                     new_block_flag = True
                     blocks[new_block.id] = new_block
-                    G.node(str(new_block.id), label=str(new_block))
-                    G.edge(str(new_block.id), str(blocks[new_block.parent_id].id))
+                    # G.node(str(new_block.id), label=str(new_block))
+                    # G.edge(str(new_block.id), str(blocks[new_block.parent_id].id))
             self.clock += 1
-            if self.clock % 10 == 0:
+            if self.clock % 10 == 0 or new_block_flag:
                 print(f"Clock: {self.clock}, Block Count: {pow.block_count}")
-            # if new_block_flag:
+            if new_block_flag:
+                G = Digraph(comment="Blockchain state", format='png')
+                G.node(str(self.pow.prime_block.id), label=str(self.pow.prime_block))
+                for id in blocks:
+                    block = blocks[id]
+                    if id != 0:
+                        G.node(str(block.id), label=str(block), color=f"{'grey' if block.notified_miner_count == 0 else 'black'}")
+                        G.edge(str(block.id), str(blocks[block.parent_id].id))
                 print(self.pow.prime_block.subtree_str(blocks))
                 if PLOT_GRAPHVIZ is True:
-                    G.render('test-output/blockchain.gv', view=True)
+                    G.render(f'test-output/blockchain-clock-{self.clock}.gv', view=True)
                 # print(self.pow.prime_block.subtree_str(blocks))
                 # print("=====================================================")
                 # nx.draw_planar(G, with_labels=True)
@@ -74,7 +78,8 @@ if __name__ == '__main__':
     pow = POW(10, 100000)
     monitor = MainMonitor(pow, miner_count=1000, neighbour_count=32, delay=1, bandwidth=10, hash_power=1)
     # monitor = MainMonitor(pow, miner_count=1000, neighbour_count=128, delay=2, bandwidth=32, hash_power=1)
-    monitor.run_simulation(100)
+    random.seed(2125)
+    monitor.run_simulation(200)
 
 
 

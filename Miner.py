@@ -132,7 +132,9 @@ class SelfishMiner(Miner):
         # head of private chain that is currently worked on
 
     def publish_private_chain(self):
+        print(f"Clock {self.clock}: Publish private chain!")
         for block in self.private_chain:
+            print(f"Private block {block.id}")
             super().update_blockchain(block)
             super().notify_neighbours(block)
         self.private_chain = []
@@ -153,16 +155,21 @@ class SelfishMiner(Miner):
         """
         Update private chain or publish private chain according to what received
         """
+        update = False
         if block.miner_id != self.id:
             # it is a block mined by other miners
             update = super().update_blockchain(block)
             if update and len(self.private_chain) > 0 \
-                    and self.longest_chain_heads[0].height >= self.private_chain[-1].height - 1:
+                    and self.longest_chain_heads[0].height >= (self.private_chain[-1].height - 1):
+                print("Public chain:")
+                for block in self.longest_chain_heads:
+                    print(f"{block.id},{block.miner_id},{block.notified_miner_count}")
                 self.publish_private_chain()
         else:
-            # selfish miner mined a block
-            self.private_chain.append(block)
-            update = True
+            if block.id not in self.blocks:
+                # selfish miner mined a block
+                self.private_chain.append(block)
+                update = True
         return update
 
 
@@ -174,6 +181,14 @@ class SelfishPropagator(SelfishMiner):
     def notify_neighbours(self, block):
         if block.miner_id == self.selfish_miner.id:
             super().notify_neighbours(block)
+        # else:
+        #     # notify selfish miner about new block
+        #     new_event = SendNewBlockEvent(self.clock, block, self.selfish_miner)
+        #     if new_event.timestamp not in self.send_events:
+        #         self.send_events[new_event.timestamp] = []
+        #     self.send_events[new_event.timestamp].append(new_event)
+
+
 
 
 
