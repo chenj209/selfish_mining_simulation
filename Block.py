@@ -17,6 +17,9 @@ class Block:
         self.uncles = uncle_ids # ids of uncles
         self.height = height
         self.notified_miner_count = 0
+        self.pending_notified_miner_count = 0
+        self.racing = False
+        self.win_race_count = 0
 
     def need_more_uncles(self):
         return len(self.uncles) < 2
@@ -33,11 +36,11 @@ class Block:
         '''
 
     def __str__(self):
-        return f"ID:{self.id}\nMID:{self.miner_id}\nPR:{self.notified_miner_count}"
+        return f"ID:{self.id}\nMID:{self.miner_id}\nPR:{self.notified_miner_count}\nPPR:{self.pending_notified_miner_count}\n"
 
 
     def subtree_str(self, blocks, level=0):
-        ret = "\t" * level + f"<{self.id},{self.miner_id},{self.notified_miner_count}>" + "\n"
+        ret = "\t" * level + f"<{self.id},{self.miner_id},{self.notified_miner_count},{self.pending_notified_miner_count}>" + "\n"
         children_str = [blocks[child].subtree_str(blocks, level + 1) for child in self.children]
         children_str.sort(key=lambda s: len(s))
         ret += "".join(children_str)

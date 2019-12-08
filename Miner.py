@@ -29,6 +29,7 @@ class Miner:
         # dict{block_id: block object}, received blocks
         self.longest_chain_heads = [pow.prime_block]
         # priority queue of longest chain heads, currently managed using timestamp
+        self.pending_notified_blocks = []
 
     def select_block_parent(self):
         """
@@ -65,9 +66,10 @@ class Miner:
         if block.id not in self.blocks:
             self.blocks[block.id] = block
             block.notified_miner_count += 1
+            block.pending_notified_miner_count -= 1
             if block.height > self.longest_chain_heads[0].height:
                 self.longest_chain_heads = [block]
-            elif block.height == self.longest_chain_heads:
+            elif block.height == self.longest_chain_heads[0]:
                 self.longest_chain_heads.append(block)
             return True
         if block.miner_id != self.blocks[block.id].miner_id:
@@ -130,6 +132,7 @@ class SelfishMiner(Miner):
         super().__init__(id, pow, delay, bandwidth, hash_power)
         self.private_chain = []
         # head of private chain that is currently worked on
+        self.racing_blocks = []
 
     def publish_private_chain(self):
         print(f"Clock {self.clock}: Publish private chain!")
@@ -163,7 +166,10 @@ class SelfishMiner(Miner):
                     and self.longest_chain_heads[0].height >= (self.private_chain[-1].height - 1):
                 print("Public chain:")
                 for block in self.longest_chain_heads:
-                    print(f"{block.id},{block.miner_id},{block.notified_miner_count}")
+                    print(f"{block.id},{block.miner_id},{block.notified_miner_count},{block.pending_notified_miner_count}")
+                if self.longest_chain_heads[0].height == self.private_chain[-1].height:
+                    self.racing_blocks.append(self.private_chain[-1])
+                    self.private_chain[-1].racing = True
                 self.publish_private_chain()
         else:
             if block.id not in self.blocks:
@@ -181,12 +187,12 @@ class SelfishPropagator(SelfishMiner):
     def notify_neighbours(self, block):
         if block.miner_id == self.selfish_miner.id:
             super().notify_neighbours(block)
-        # else:
-        #     # notify selfish miner about new block
-        #     new_event = SendNewBlockEvent(self.clock, block, self.selfish_miner)
-        #     if new_event.timestamp not in self.send_events:
-        #         self.send_events[new_event.timestamp] = []
-        #     self.send_events[new_event.timestamp].append(new_event)
+        else:
+            # notify selfish miner about new block
+            new_event = SendNewBlockEvent(self.clock, block, self.selfish_miner)
+            if new_event.timestamp not in self.send_events:
+                self.send_events[new_event.timestamp] = []
+            self.send_events[new_event.timestamp].append(new_event)
 
 
 

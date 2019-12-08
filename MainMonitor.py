@@ -26,19 +26,25 @@ from graphviz import Digraph
 
 
 class MainMonitor:
-    def __init__(self, pow, miner_count, neighbour_count, delay, bandwidth, hash_power=1, configuration="selfish1"):
+    def __init__(self, pow, miner_count, neighbour_count, delay, bandwidth,
+                 hash_power=1, selfish_miner_hash_power_in_percent=0.3, propagator_count=100, propagator_delay=0):
 
         # init <miner_count> miners
         self.pow = pow
-        if configuration == "selfish1":
-            selfish_miner = [SelfishMiner(0, pow, delay, bandwidth, 430)]
-            selfish_propagaters = [SelfishPropagator(selfish_miner[0], i, pow, delay, bandwidth) for i in range(1,100)]
-            self.miners = [Miner(i, pow, delay, bandwidth, hash_power) for i in range(100, 100+miner_count)] \
-                            + selfish_miner + selfish_propagaters
-        else:
-            self.miners = [Miner(i, pow, delay, bandwidth, hash_power) for i in range(miner_count)]
+        self.miner_count = miner_count
+        self.propagater_count = propagator_count
+        self.selfish_miner = None
+        # if configuration == "selfish1":
+        selfish_miner_hr = int(hash_power*miner_count/(1-selfish_miner_hash_power_in_percent)-miner_count*hash_power)
+        self.selfish_miner = SelfishMiner(0, pow, delay, bandwidth, selfish_miner_hr)
+        selfish_propagaters = [SelfishPropagator(self.selfish_miner, i, pow, propagator_delay, bandwidth) for i in range(1,self.propagater_count)]
+        self.miners = [Miner(i, pow, delay, bandwidth, hash_power) for i in range(self.propagater_count, self.propagater_count+miner_count)] \
+                        + [self.selfish_miner] + selfish_propagaters
+        # else:
+        #     self.miners = [Miner(i, pow, delay, bandwidth, hash_power) for i in range(miner_count)]
         NetworkGraphGen.random_graph(self.miners, neighbour_count)
         self.clock = 0
+        self.propagation_rates = []
 
     def run_simulation(self, time):
         blocks = {0: self.pow.prime_block}
@@ -61,6 +67,16 @@ class MainMonitor:
                 for new_block in new_blocks:
                     new_block_flag = True
                     blocks[new_block.id] = new_block
+
+            if len(self.selfish_miner.racing_blocks) > 0:
+                racing_blocks = self.selfish_miner.racing_blocks[:]
+                for block in racing_blocks:
+                    if block.notified_miner_count == self.miner_count + self.propagater_count:
+                        pr = block.win_race_count / self.miner_count
+                        self.propagation_rates.append(pr)
+                        print(f"Race finish, propagation rate: {pr}")
+                        self.selfish_miner.racing_blocks.remove(block)
+
             self.clock += 1
             if self.clock % 10 == 0 or new_block_flag:
                 print(f"Clock: {self.clock}, Block Count: {pow.block_count}")
@@ -83,7 +99,8 @@ class MainMonitor:
                 # nx.draw_kamada_kawai(G, with_labels=True)
                 # nx.draw_networkx(G,with_labels=True)
                 # nx.draw(G, with_labels=True)
-
+        print(f"Avg propagation rate: {sum(self.propagation_rates) / len(self.propagation_rates)}")
+        print(f"Propagation race results: {self.propagation_rates}")
         regular_rewards, uncle_rewards = self.reward(blocks, last_block_id)
         total_rewards = sum(regular_rewards.values())+sum(uncle_rewards.values())
         print("Total rewards:", total_rewards)
@@ -258,11 +275,15 @@ class MainMonitor:
     
 if __name__ == '__main__':
     from POW import POW
-    pow = POW(10, 100000)
-    monitor = MainMonitor(pow, miner_count=1000, neighbour_count=32, delay=1, bandwidth=10, hash_power=1)
-    # monitor = MainMonitor(pow, miner_count=1000, neighbour_count=128, delay=2, bandwidth=32, hash_power=1)
-    random.seed(2125)
-    monitor.run_simulation(500)
+    import json
+    config = json.load(open('selfish_config.json'))
+    pow = POW(config['pow_difficulty']*100000000000, 100000000000)
+    random.seed(config['random_seed'])
+    monitor = MainMonitor(pow, miner_count=config['miner_count'], neighbour_count=config['neighbour_count'],
+                          delay=config['network_delay'], bandwidth=config['network_bandwidth'],
+                          hash_power=config['hash_power_per_miner'], selfish_miner_hash_power_in_percent=config['selfish_miner_hash_power_in_percent'],
+                          propagator_count=config['selfish_propagator_count'], propagator_delay=config['propagator_delay'])
+    monitor.run_simulation(config['simulation_iterations'])
 
 
 
