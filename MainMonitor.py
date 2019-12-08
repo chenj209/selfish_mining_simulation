@@ -27,7 +27,8 @@ from graphviz import Digraph
 
 class MainMonitor:
     def __init__(self, pow, miner_count, neighbour_count, delay, bandwidth,
-                 hash_power=1, selfish_miner_hash_power_in_percent=0.3, propagator_count=100, propagator_delay=0):
+                 hash_power=1, selfish_miner_hash_power_in_percent=0.3, propagator_count=100,
+                 propagator_delay=0, propagator_bandwidth=100):
 
         # init <miner_count> miners
         self.pow = pow
@@ -37,7 +38,7 @@ class MainMonitor:
         # if configuration == "selfish1":
         selfish_miner_hr = int(hash_power*miner_count/(1-selfish_miner_hash_power_in_percent)-miner_count*hash_power)
         self.selfish_miner = SelfishMiner(0, pow, delay, bandwidth, selfish_miner_hr)
-        selfish_propagaters = [SelfishPropagator(self.selfish_miner, i, pow, propagator_delay, bandwidth) for i in range(1,self.propagater_count)]
+        selfish_propagaters = [SelfishPropagator(self.selfish_miner, i, pow, propagator_delay, propagator_bandwidth) for i in range(1,self.propagater_count)]
         self.miners = [Miner(i, pow, delay, bandwidth, hash_power) for i in range(self.propagater_count, self.propagater_count+miner_count)] \
                         + [self.selfish_miner] + selfish_propagaters
         # else:
@@ -285,7 +286,8 @@ if __name__ == '__main__':
     monitor = MainMonitor(pow, miner_count=config['miner_count'], neighbour_count=config['neighbour_count'],
                           delay=config['network_delay'], bandwidth=config['network_bandwidth'],
                           hash_power=config['hash_power_per_miner'], selfish_miner_hash_power_in_percent=config['selfish_miner_hash_power_in_percent'],
-                          propagator_count=config['selfish_propagator_count'], propagator_delay=config['propagator_delay'])
+                          propagator_count=config['selfish_propagator_count'], propagator_delay=config['propagator_delay'],
+                          propagator_bandwidth=config['propagator_bandwidth'])
     monitor.run_simulation(config['simulation_iterations'])
 
 
