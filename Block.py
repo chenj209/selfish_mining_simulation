@@ -13,17 +13,24 @@ class Block:
         self.timestamp = timestamp
         self.parent_id = parent_id
         self.children = [] # ids of children
-        self.other_children = [] # invalid childrens
+        # self.other_children = [] # invalid childrens
         self.uncles = uncle_ids # ids of uncles
         self.height = height
         self.notified_miner_count = 0
 
+    def need_more_uncles(self):
+        return len(self.uncles) < 2
+
+
     def add_child(self, child_id):
+        self.children.append(child_id)
+        '''
         # currently assumes only first three children is valid
         if len(self.children) < 3:
             self.children.append(child_id)
         else:
             self.other_children.append(child_id)
+        '''
 
     def __str__(self):
         return f"ID:{self.id}\nMID:{self.miner_id}\nPR:{self.notified_miner_count}"

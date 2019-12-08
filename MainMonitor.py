@@ -1,3 +1,5 @@
+from Block import Block
+
 PLOT_GRAPHVIZ = True
 # def get_longest_chain(prime_block, blocks):
 #     """
@@ -71,8 +73,10 @@ class MainMonitor:
                         G.node(str(block.id), label=str(block), color=f"{'grey' if block.notified_miner_count == 0 else 'black'}")
                         G.edge(str(block.id), str(blocks[block.parent_id].id))
                 print(self.pow.prime_block.subtree_str(blocks))
+                '''
                 if PLOT_GRAPHVIZ is True:
                     G.render(f'test-output/blockchain-clock-{self.clock}.gv', view=True)
+                '''
                 # print(self.pow.prime_block.subtree_str(blocks))
                 # print("=====================================================")
                 # nx.draw_planar(G, with_labels=True)
@@ -81,11 +85,22 @@ class MainMonitor:
                 # nx.draw(G, with_labels=True)
 
         regular_rewards, uncle_rewards = self.reward(blocks, last_block_id)
+        total_rewards = sum(regular_rewards.values())+sum(uncle_rewards.values())
+        print("Total rewards:", total_rewards)
+        print("regular reward dictionary:")
+        print(regular_rewards)
+        print("uncle reward dictionary:")
+        print(uncle_rewards)
+        #selfish_miner_rewards = regular_rewards[0]+uncle_rewards[0]
+        #print(selfish_miner_rewards)
+        print("Simulation Done!")
+
     
     # assume a block earns the miner 32 unit 
     def reward(self, blocks, last_block_id):
         longest_chain = self.find_longest_chain(blocks, last_block_id)
-        uncles, nephews = self.find_uncles_nephews(blocks, longest_chain)
+        new_blocks = self.assign_uncles(blocks, longest_chain)
+        uncles, nephews = self.find_uncles_nephews(new_blocks, longest_chain)
         # regular reward dict {miner_id: reward}
         regular_rewards = {}
         # uncle reward dict {miner_id: reward}
@@ -150,6 +165,96 @@ class MainMonitor:
                     uncles[uncle_id] = distance
         
         return uncles, nephews
+
+    def assign_uncles(self, blocks, longest_chain):
+        print("start assign_uncles")
+        rev_longest_chain = longest_chain[-3::-1] # skip first two blocks
+        uncle_candidates = self.find_uncle_candidates(blocks, longest_chain)
+        for regular_block in rev_longest_chain:
+            #
+            # if this regular block is mined by a selfish miner (Rational)
+            if regular_block.miner_id == 0:
+                # self uncle check count
+                if regular_block.height < 6:
+                    generation_count = regular_block.height - 2
+                else:
+                    generation_count = 6
+                # find uncles mined by itself from current to previous height
+                for i in range(regular_block.height, regular_block.height-generation_count, -1):
+                    if i in uncle_candidates:
+                        for uncle_id in uncle_candidates[i]:
+                            if regular_block.need_more_uncles and blocks[uncle_id].miner_id == regular_block.miner_id:
+                                blocks[regular_block.id].uncles.append(uncle_id)
+                                # remove uncle_id
+                                uncle_candidates[i].remove(uncle_id)
+                        '''
+                        # remove this entry if its empty
+                        if len(uncle_candidates[i]) == 0:
+                            del uncle_candidates[i]
+                        '''
+
+
+                # find uncles mined by anyone
+                #while regular_block.need_more_uncles and len(uncle_candidates) > 0:
+                    #temp_list = uncle_candidates.keys().copy()
+                for j in uncle_candidates.keys():
+                    if j < regular_block.height:
+                        for uncle_id in uncle_candidates[j]:
+                            if regular_block.need_more_uncles and blocks[uncle_id].timestamp < regular_block.timestamp:
+                                blocks[regular_block.id].uncles.append(uncle_id)
+                                # remove uncle_id
+                                uncle_candidates[j].remove(uncle_id)
+                        '''
+                        # remove this entry if its empty
+                        if len(uncle_candidates[j]) == 0:
+                            del uncle_candidates[j]
+                        '''
+
+            # regular block mined by honest miner
+            else:
+                #while regular_block.need_more_uncles and len(uncle_candidates) > 0:
+                    # temp_list = uncle_candidates.keys().copy()
+                for k in uncle_candidates.keys():
+                    if k < regular_block.height:
+                        for uncle_id in uncle_candidates[k]:
+                            if regular_block.need_more_uncles and blocks[uncle_id].timestamp < regular_block.timestamp:
+                                blocks[regular_block.id].uncles.append(uncle_id)
+                                # remove uncle_id
+                                uncle_candidates[k].remove(uncle_id)
+                        '''
+                        # remove this entry if its empty
+                        if len(uncle_candidates[k]) == 0:
+                            del uncle_candidates[k]
+                        '''
+        print("Uncles have been assigned!")
+        return blocks
+
+
+
+
+
+
+
+
+
+
+
+    def find_uncle_candidates(self, blocks, longest_chain):
+        # rev_longest_chain = longest_chain[::-1]
+        uncle_candidates = {}  # {height:[uncle_id_1, uncle_id_2 ...]}
+        temp_last_regular_block = Block(-1, -1, -1, -1, -1)
+        for regular_block in longest_chain:
+            if len(regular_block.children) > 1:
+                for child_id in regular_block.children:
+                    # not in the longest chain
+                    if child_id != temp_last_regular_block.id:
+                        if blocks[child_id].height not in uncle_candidates:
+                            uncle_candidates[blocks[child_id].height] = [child_id]
+                        else:
+                            uncle_candidates[blocks[child_id].height].append(child_id)
+            temp_last_regular_block = regular_block
+
+        return uncle_candidates
     
 
 
@@ -166,7 +271,7 @@ if __name__ == '__main__':
     monitor = MainMonitor(pow, miner_count=1000, neighbour_count=32, delay=1, bandwidth=10, hash_power=1)
     # monitor = MainMonitor(pow, miner_count=1000, neighbour_count=128, delay=2, bandwidth=32, hash_power=1)
     random.seed(2125)
-    monitor.run_simulation(200)
+    monitor.run_simulation(500)
 
 
 
