@@ -151,15 +151,6 @@ class MainMonitor:
         
         return uncles, nephews
     
-
-
-
-
-        
-        
-
-
-
 if __name__ == '__main__':
     from POW import POW
     pow = POW(10, 100000)
