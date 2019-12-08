@@ -99,8 +99,11 @@ class MainMonitor:
                 # nx.draw_kamada_kawai(G, with_labels=True)
                 # nx.draw_networkx(G,with_labels=True)
                 # nx.draw(G, with_labels=True)
-        print(f"Avg propagation rate: {sum(self.propagation_rates) / len(self.propagation_rates)}")
-        print(f"Propagation race results: {self.propagation_rates}")
+        if len(self.propagation_rates) > 0:
+            print(f"Avg propagation rate: {sum(self.propagation_rates) / len(self.propagation_rates)}")
+            print(f"Propagation race results: {self.propagation_rates}")
+        else:
+            print("No propagation race")
         regular_rewards, uncle_rewards = self.reward(blocks, last_block_id)
         total_rewards = sum(regular_rewards.values())+sum(uncle_rewards.values())
         print("Total rewards:", total_rewards)
