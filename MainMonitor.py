@@ -406,6 +406,7 @@ def main(config_file='selfish_config.json'):
     if len(hrs) > 0:
         for hr in hrs:
             print(f"Running {hr}")
+            pow = POW(config['pow_difficulty'] * 100000000000, 100000000000)
             random.seed(config['random_seed'])
             monitor = MainMonitor(pow, miner_count=config['miner_count'], neighbour_count=config['neighbour_count'],
                                   delay=config['network_delay'], upload_bandwidth=config['network_upload_bandwidth'],
