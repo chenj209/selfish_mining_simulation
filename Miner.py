@@ -4,12 +4,12 @@ import random
 
 
 class Miner:
-    def __init__(self, id, pow, delay, bandwidth, hash_power=1):
+    def __init__(self, id, pow, delay, upload_bandwidth, download_bandwidth, hash_power=1):
         self.clock = 0
         # clock time of simulation
-        self.upload_bandwidth = bandwidth
+        self.upload_bandwidth = upload_bandwidth
         # number of update events that can be processed in 1 timestamp
-        self.download_bandwidth = bandwidth
+        self.download_bandwidth = download_bandwidth
         # number of download events that can be processed in 1 timestamp
         self.hash_power = hash_power
         # number of pow attempts per timestamp
@@ -67,7 +67,6 @@ class Miner:
         if block.id not in self.blocks:
             self.blocks[block.id] = block
             block.notified_miner_count += 1
-            block.notified_miners.append(self.id)
             block.pending_notified_miner_count -= 1
             if block.height > self.longest_chain_heads[0].height:
                 self.longest_chain_heads = [block]
@@ -131,8 +130,8 @@ class Miner:
         return new_blocks
 
 class SelfishMiner(Miner):
-    def __init__(self, id, pow, delay, bandwidth, hash_power=1):
-        super().__init__(id, pow, delay, bandwidth, hash_power)
+    def __init__(self, id, pow, delay, upload_bandwidth, download_bandwidth, hash_power=1):
+        super().__init__(id, pow, delay, upload_bandwidth, download_bandwidth, hash_power)
         self.private_chain = []
         # head of private chain that is currently worked on
         self.racing_blocks = []
@@ -189,8 +188,8 @@ class SelfishMiner(Miner):
 
 
 class SelfishPropagator(SelfishMiner):
-    def __init__(self, selfish_miner, id, pow, delay, bandwidth, hash_power=0):
-        super().__init__(id, pow, delay, bandwidth, hash_power)
+    def __init__(self, selfish_miner, id, pow, delay, upload_bandwidth, download_bandwidth, hash_power=0):
+        super().__init__(id, pow, delay, upload_bandwidth, download_bandwidth, hash_power)
         self.selfish_miner = selfish_miner
         self.honest = False
 

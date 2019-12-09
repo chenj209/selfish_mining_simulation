@@ -26,9 +26,9 @@ from POW import POW
 
 
 class MainMonitor:
-    def __init__(self, pow, miner_count, neighbour_count, delay, bandwidth,
+    def __init__(self, pow, miner_count, neighbour_count, delay, upload_bandwidth, download_bandwidth,
                  hash_power=1, selfish_miner_hash_power_in_percent=0.3, propagator_count=100,
-                 propagator_delay=0, propagator_bandwidth=100, racing_test=False, race_count=0):
+                 propagator_delay=0, propagator_upload_bandwidth=100, propagator_download_bandwidth=100, racing_test=False, race_count=0):
 
         self.racing_test = racing_test
         self.race_count = race_count
@@ -40,9 +40,9 @@ class MainMonitor:
             self.selfish_miner = None
             # if configuration == "selfish1":
             selfish_miner_hr = int(hash_power*miner_count/(1-selfish_miner_hash_power_in_percent)-miner_count*hash_power)
-            self.selfish_miner = SelfishMiner(self.miner_count, pow, delay, bandwidth, selfish_miner_hr)
-            selfish_propagaters = [SelfishPropagator(self.selfish_miner, i, pow, propagator_delay, propagator_bandwidth) for i in range(1+self.miner_count,1+self.miner_count+self.propagater_count)]
-            self.miners = [Miner(i, pow, delay, bandwidth, hash_power) for i in range(miner_count)] \
+            self.selfish_miner = SelfishMiner(0, pow, delay, upload_bandwidth, download_bandwidth, selfish_miner_hr)
+            selfish_propagaters = [SelfishPropagator(self.selfish_miner, i, pow, propagator_delay, propagator_upload_bandwidth, propagator_download_bandwidth) for i in range(1+self.miner_count,1+self.miner_count+self.propagater_count)]
+            self.miners = [Miner(i, pow, delay, upload_bandwidth, download_bandwidth, hash_power) for i in range(1, miner_count+1)] \
                             + [self.selfish_miner] + selfish_propagaters
             # else:
             #     self.miners = [Miner(i, pow, delay, bandwidth, hash_power) for i in range(miner_count)]
@@ -57,11 +57,11 @@ class MainMonitor:
             self.propagater_count = propagator_count
             self.selfish_miner = None
             # if configuration == "selfish1":
-            self.selfish_miner = SelfishMiner(self.miner_count, self.pow, delay, bandwidth, 1)
+            self.selfish_miner = SelfishMiner(0, self.pow, delay, upload_bandwidth, download_bandwidth, 1)
             self.selfish_miner.racing_test = True
-            racer_miner = Miner(0, self.pow, delay, bandwidth, 1)
-            selfish_propagaters = [SelfishPropagator(self.selfish_miner, i, self.pow, propagator_delay, propagator_bandwidth) for i in range(1+self.miner_count,1+self.miner_count+self.propagater_count)]
-            self.miners = [Miner(i, self.pow, delay, bandwidth, 0) for i in range(1, miner_count)] \
+            racer_miner = Miner(1, self.pow, delay, upload_bandwidth, download_bandwidth, 1)
+            selfish_propagaters = [SelfishPropagator(self.selfish_miner, i, self.pow, propagator_delay, propagator_upload_bandwidth, propagator_download_bandwidth) for i in range(1+self.miner_count,1+self.miner_count+self.propagater_count)]
+            self.miners = [Miner(i, self.pow, delay, upload_bandwidth, download_bandwidth, 0) for i in range(2, miner_count+1)] \
                           + [self.selfish_miner] + [racer_miner] + selfish_propagaters
             # else:
             #     self.miners = [Miner(i, pow, delay, bandwidth, hash_power) for i in range(miner_count)]
@@ -77,10 +77,12 @@ class MainMonitor:
         last_block_id = 0
         # HC #
 
-        while self.clock < time or (self.racing_test and len(self.propagation_rates) < self.race_count):
+        while (self.racing_test or self.clock < time) and (not self.racing_test or len(self.propagation_rates) < self.race_count):
             random.shuffle(self.miners)
             new_block_flag = False
             for miner in self.miners:
+                if miner.id == 0:
+                    print("wtf")
                 new_blocks = miner.run()
                 # HC: record new highest height
                 if len(new_blocks) >= 1:
@@ -307,10 +309,11 @@ if __name__ == '__main__':
     pow = POW(config['pow_difficulty']*100000000000, 100000000000)
     random.seed(config['random_seed'])
     monitor = MainMonitor(pow, miner_count=config['miner_count'], neighbour_count=config['neighbour_count'],
-                          delay=config['network_delay'], bandwidth=config['network_bandwidth'],
+                          delay=config['network_delay'], upload_bandwidth=config['network_upload_bandwidth'],
+                          download_bandwidth=config['network_download_bandwidth'],
                           hash_power=config['hash_power_per_miner'], selfish_miner_hash_power_in_percent=config['selfish_miner_hash_power_in_percent'],
                           propagator_count=config['selfish_propagator_count'], propagator_delay=config['propagator_delay'],
-                          propagator_bandwidth=config['propagator_bandwidth'], racing_test=bool(config['racing_test']),
+                          propagator_upload_bandwidth=config['propagator_upload_bandwidth'], propagator_download_bandwidth=config['propagator_download_bandwidth'], racing_test=bool(config['racing_test']),
                           race_count=config['race_count'])
     monitor.run_simulation(config['simulation_iterations'])
 
