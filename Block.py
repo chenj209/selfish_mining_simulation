@@ -20,6 +20,7 @@ class Block:
         self.pending_notified_miner_count = 1 # for the miner who mined the block
         self.racing = False
         self.win_race_count = 0
+        self.publish_timestamp = -1
 
     def need_more_uncles(self):
         return len(self.uncles) < 2
