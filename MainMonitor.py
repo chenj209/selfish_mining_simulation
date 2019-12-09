@@ -81,7 +81,7 @@ class MainMonitor:
         # HC #
 
         # while (self.racing_test or self.clock < time) and (not self.racing_test or len(self.propagation_rates) < self.race_count):
-        while (self.racing_test or longest_chain_height < time) and (
+        while (self.racing_test or self.pow.block_count < time) and (
                     not self.racing_test or len(self.propagation_rates) < self.race_count):
             random.shuffle(self.miners)
             new_block_flag = False
@@ -323,7 +323,7 @@ def main(config_file='selfish_config.json'):
                           race_count=config['race_count'])
     if config['honest_test']:
         monitor.selfish_miner.honest = True
-    monitor.run_simulation(config['simulation_longest_chain_blocks'])
+    monitor.run_simulation(config['simulation_blocks'])
 
 if __name__ == '__main__':
     import json
