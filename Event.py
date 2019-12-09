@@ -46,7 +46,7 @@ class ReceiveNewBlockEvent(Event):
     def process(self, miner):
         if miner.update_blockchain(self.block):
             miner.notify_neighbours(self.block)
-            if self.block.racing:
+            if self.block.racing and miner.honest:
                 if miner.select_block_parent().id == self.block.id:
                     self.block.win_race_count += 1
             return True

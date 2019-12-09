@@ -17,9 +17,10 @@ class Block:
         self.uncles = uncle_ids # ids of uncles
         self.height = height
         self.notified_miner_count = 0
-        self.pending_notified_miner_count = 0
+        self.pending_notified_miner_count = 1 # for the miner who mined the block
         self.racing = False
         self.win_race_count = 0
+        self.notified_miners = []
 
     def need_more_uncles(self):
         return len(self.uncles) < 2

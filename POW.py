@@ -23,7 +23,7 @@ class POW:
         # if self.count % 100 == 0:
         #     print(f"POW is tried {self.count} times")
 
-        if nounce < self.difficulty:
+        if nounce <= self.difficulty:
             # self.count = 0
             self.block_count += 1
             return True

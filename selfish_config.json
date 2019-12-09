@@ -1,14 +1,16 @@
 {
   "random_seed": 2125,
-  "simulation_iterations": 500,
-  "pow_difficulty": 0.00002,
-  "miner_count": 1000,
-  "neighbour_count": 16,
-  "network_delay": 4,
-  "network_bandwidth": 5,
+  "simulation_iterations": 100,
+  "pow_difficulty": 0.00004,
+  "miner_count": 10,
+  "neighbour_count": 10,
+  "network_delay": 1,
+  "network_bandwidth": 10,
   "hash_power_per_miner": 1,
-  "selfish_miner_hash_power_in_percent": 0.3,
-  "selfish_propagator_count": 300,
+  "selfish_miner_hash_power_in_percent": 0.1,
+  "selfish_propagator_count": 5,
   "propagator_delay": 0,
-  "propagator_bandwidth": 100
+  "propagator_bandwidth": 100,
+  "racing_test": 1,
+  "race_count": 100
 }

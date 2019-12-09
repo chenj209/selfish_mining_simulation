@@ -30,6 +30,7 @@ class Miner:
         self.longest_chain_heads = [pow.prime_block]
         # priority queue of longest chain heads, currently managed using timestamp
         self.pending_notified_blocks = []
+        self.honest = True
 
     def select_block_parent(self):
         """
@@ -66,6 +67,7 @@ class Miner:
         if block.id not in self.blocks:
             self.blocks[block.id] = block
             block.notified_miner_count += 1
+            block.notified_miners.append(self.id)
             block.pending_notified_miner_count -= 1
             if block.height > self.longest_chain_heads[0].height:
                 self.longest_chain_heads = [block]
@@ -114,6 +116,7 @@ class Miner:
             new_block = self.mine()
             if new_block:
                 self.update_blockchain(new_block)
+                self.pending_notified_blocks.append(new_block.id)
                 self.notify_neighbours(new_block)
                 new_blocks.append(new_block)
 
@@ -133,6 +136,8 @@ class SelfishMiner(Miner):
         self.private_chain = []
         # head of private chain that is currently worked on
         self.racing_blocks = []
+        self.racing_test = False
+        self.honest = False
 
     def publish_private_chain(self):
         print(f"Clock {self.clock}: Publish private chain!")
@@ -152,7 +157,11 @@ class SelfishMiner(Miner):
         """
         Notify neighbours according to selfish strategy
         """
-        pass
+        if self.racing_test and len(self.private_chain) > 0:
+            self.private_chain[-1].racing = True
+            self.racing_blocks.append(self.private_chain[-1])
+            self.publish_private_chain()
+
 
     def update_blockchain(self, block):
         """
@@ -183,6 +192,7 @@ class SelfishPropagator(SelfishMiner):
     def __init__(self, selfish_miner, id, pow, delay, bandwidth, hash_power=0):
         super().__init__(id, pow, delay, bandwidth, hash_power)
         self.selfish_miner = selfish_miner
+        self.honest = False
 
     def notify_neighbours(self, block):
         if block.miner_id == self.selfish_miner.id:

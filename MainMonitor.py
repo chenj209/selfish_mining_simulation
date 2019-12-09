@@ -22,30 +22,52 @@ import random
 # import networkx as nx
 # import matplotlib.pyplot as plt
 from graphviz import Digraph
-
+from POW import POW
 
 
 class MainMonitor:
     def __init__(self, pow, miner_count, neighbour_count, delay, bandwidth,
                  hash_power=1, selfish_miner_hash_power_in_percent=0.3, propagator_count=100,
-                 propagator_delay=0, propagator_bandwidth=100):
+                 propagator_delay=0, propagator_bandwidth=100, racing_test=False, race_count=0):
 
-        # init <miner_count> miners
-        self.pow = pow
-        self.miner_count = miner_count
-        self.propagater_count = propagator_count
-        self.selfish_miner = None
-        # if configuration == "selfish1":
-        selfish_miner_hr = int(hash_power*miner_count/(1-selfish_miner_hash_power_in_percent)-miner_count*hash_power)
-        self.selfish_miner = SelfishMiner(0, pow, delay, bandwidth, selfish_miner_hr)
-        selfish_propagaters = [SelfishPropagator(self.selfish_miner, i, pow, propagator_delay, propagator_bandwidth) for i in range(1,self.propagater_count)]
-        self.miners = [Miner(i, pow, delay, bandwidth, hash_power) for i in range(self.propagater_count, self.propagater_count+miner_count)] \
-                        + [self.selfish_miner] + selfish_propagaters
-        # else:
-        #     self.miners = [Miner(i, pow, delay, bandwidth, hash_power) for i in range(miner_count)]
-        NetworkGraphGen.random_graph(self.miners, neighbour_count)
-        self.clock = 0
-        self.propagation_rates = []
+        self.racing_test = racing_test
+        self.race_count = race_count
+        if not racing_test:
+            # init <miner_count> miners
+            self.pow = pow
+            self.miner_count = miner_count
+            self.propagater_count = propagator_count
+            self.selfish_miner = None
+            # if configuration == "selfish1":
+            selfish_miner_hr = int(hash_power*miner_count/(1-selfish_miner_hash_power_in_percent)-miner_count*hash_power)
+            self.selfish_miner = SelfishMiner(self.miner_count, pow, delay, bandwidth, selfish_miner_hr)
+            selfish_propagaters = [SelfishPropagator(self.selfish_miner, i, pow, propagator_delay, propagator_bandwidth) for i in range(1+self.miner_count,1+self.miner_count+self.propagater_count)]
+            self.miners = [Miner(i, pow, delay, bandwidth, hash_power) for i in range(miner_count)] \
+                            + [self.selfish_miner] + selfish_propagaters
+            # else:
+            #     self.miners = [Miner(i, pow, delay, bandwidth, hash_power) for i in range(miner_count)]
+            NetworkGraphGen.random_graph(self.miners, neighbour_count)
+            self.clock = 0
+            self.propagation_rates = []
+
+        else:
+            # init <miner_count> miners
+            self.pow = POW(1,1)
+            self.miner_count = miner_count
+            self.propagater_count = propagator_count
+            self.selfish_miner = None
+            # if configuration == "selfish1":
+            self.selfish_miner = SelfishMiner(self.miner_count, self.pow, delay, bandwidth, 1)
+            self.selfish_miner.racing_test = True
+            racer_miner = Miner(0, self.pow, delay, bandwidth, 1)
+            selfish_propagaters = [SelfishPropagator(self.selfish_miner, i, self.pow, propagator_delay, propagator_bandwidth) for i in range(1+self.miner_count,1+self.miner_count+self.propagater_count)]
+            self.miners = [Miner(i, self.pow, delay, bandwidth, 0) for i in range(1, miner_count)] \
+                          + [self.selfish_miner] + [racer_miner] + selfish_propagaters
+            # else:
+            #     self.miners = [Miner(i, pow, delay, bandwidth, hash_power) for i in range(miner_count)]
+            NetworkGraphGen.random_graph(self.miners, neighbour_count)
+            self.clock = 0
+            self.propagation_rates = []
 
     def run_simulation(self, time):
         blocks = {0: self.pow.prime_block}
@@ -55,7 +77,7 @@ class MainMonitor:
         last_block_id = 0
         # HC #
 
-        while self.clock < time:
+        while self.clock < time or (self.racing_test and len(self.propagation_rates) < self.race_count):
             random.shuffle(self.miners)
             new_block_flag = False
             for miner in self.miners:
@@ -72,7 +94,7 @@ class MainMonitor:
             if len(self.selfish_miner.racing_blocks) > 0:
                 racing_blocks = self.selfish_miner.racing_blocks[:]
                 for block in racing_blocks:
-                    if block.notified_miner_count == self.miner_count + self.propagater_count:
+                    if block.notified_miner_count == self.miner_count + self.propagater_count + 1:
                         pr = block.win_race_count / self.miner_count
                         self.propagation_rates.append(pr)
                         print(f"Race finish, propagation rate: {pr}")
@@ -81,7 +103,9 @@ class MainMonitor:
             self.clock += 1
             if self.clock % 10 == 0 or new_block_flag:
                 print(f"Clock: {self.clock}, Block Count: {pow.block_count}")
-            if new_block_flag:
+                if self.racing_test:
+                    print(f"Race count: {len(self.propagation_rates)}")
+            if new_block_flag and not self.racing_test:
                 G = Digraph(comment="Blockchain state", format='png')
                 G.node(str(self.pow.prime_block.id), label=str(self.pow.prime_block))
                 for id in blocks:
@@ -278,7 +302,6 @@ class MainMonitor:
         return uncle_candidates
     
 if __name__ == '__main__':
-    from POW import POW
     import json
     config = json.load(open('selfish_config.json'))
     pow = POW(config['pow_difficulty']*100000000000, 100000000000)
@@ -287,7 +310,8 @@ if __name__ == '__main__':
                           delay=config['network_delay'], bandwidth=config['network_bandwidth'],
                           hash_power=config['hash_power_per_miner'], selfish_miner_hash_power_in_percent=config['selfish_miner_hash_power_in_percent'],
                           propagator_count=config['selfish_propagator_count'], propagator_delay=config['propagator_delay'],
-                          propagator_bandwidth=config['propagator_bandwidth'])
+                          propagator_bandwidth=config['propagator_bandwidth'], racing_test=bool(config['racing_test']),
+                          race_count=config['race_count'])
     monitor.run_simulation(config['simulation_iterations'])
 
 
