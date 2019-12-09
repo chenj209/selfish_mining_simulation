@@ -147,7 +147,7 @@ class SelfishMiner(Miner):
         self.private_chain = []
 
     def select_block_parent(self):
-        if len(self.private_chain) > 0:
+        if len(self.private_chain) > 0 and not self.honest:
             return self.private_chain[-1]
         else:
             return super().select_block_parent()
@@ -156,16 +156,21 @@ class SelfishMiner(Miner):
         """
         Notify neighbours according to selfish strategy
         """
-        if self.racing_test and len(self.private_chain) > 0:
-            self.private_chain[-1].racing = True
-            self.racing_blocks.append(self.private_chain[-1])
-            self.publish_private_chain()
+        if self.honest:
+            super().notify_neighbours(block)
+        else:
+            if self.racing_test and len(self.private_chain) > 0:
+                self.private_chain[-1].racing = True
+                self.racing_blocks.append(self.private_chain[-1])
+                self.publish_private_chain()
 
 
     def update_blockchain(self, block):
         """
         Update private chain or publish private chain according to what received
         """
+        if self.honest:
+            return super().update_blockchain(block)
         update = False
         if block.miner_id != self.id:
             # it is a block mined by other miners

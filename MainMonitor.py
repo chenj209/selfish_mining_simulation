@@ -313,6 +313,8 @@ if __name__ == '__main__':
                           propagator_count=config['selfish_propagator_count'], propagator_delay=config['propagator_delay'],
                           propagator_upload_bandwidth=config['propagator_upload_bandwidth'], propagator_download_bandwidth=config['propagator_download_bandwidth'], racing_test=bool(config['racing_test']),
                           race_count=config['race_count'])
+    if config['honest_test']:
+        monitor.selfish_miner.honest = True
     monitor.run_simulation(config['simulation_iterations'])
 
 
