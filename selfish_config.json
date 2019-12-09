@@ -2,7 +2,7 @@
   "random_seed": 2125,
   "simulation_iterations": 500,
   "pow_difficulty": 0.00004,
-  "miner_count": 10,
+  "miner_count": 1000,
   "neighbour_count": 10,
   "network_delay": 1,
   "network_upload_bandwidth": 100000,
@@ -13,6 +13,6 @@
   "propagator_delay": 1,
   "propagator_upload_bandwidth": 10,
   "propagator_download_bandwidth": 10,
-  "racing_test": 1,
+  "racing_test": 0,
   "race_count": 100
 }

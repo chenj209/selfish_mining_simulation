@@ -81,8 +81,6 @@ class MainMonitor:
             random.shuffle(self.miners)
             new_block_flag = False
             for miner in self.miners:
-                if miner.id == 0:
-                    print("wtf")
                 new_blocks = miner.run()
                 # HC: record new highest height
                 if len(new_blocks) >= 1:
