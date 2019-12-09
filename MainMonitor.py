@@ -74,12 +74,15 @@ class MainMonitor:
     def run_simulation(self, time):
         blocks = {0: self.pow.prime_block}
         # dict{block_id: (block object, propagate count)}
+        longest_chain_height = 1
 
         # HC: last block storage
         last_block_id = 0
         # HC #
 
-        while (self.racing_test or self.clock < time) and (not self.racing_test or len(self.propagation_rates) < self.race_count):
+        # while (self.racing_test or self.clock < time) and (not self.racing_test or len(self.propagation_rates) < self.race_count):
+        while (self.racing_test or longest_chain_height < time) and (
+                    not self.racing_test or len(self.propagation_rates) < self.race_count):
             random.shuffle(self.miners)
             new_block_flag = False
             for miner in self.miners:
@@ -92,6 +95,8 @@ class MainMonitor:
                 for new_block in new_blocks:
                     new_block_flag = True
                     blocks[new_block.id] = new_block
+                    if new_block.height > longest_chain_height:
+                        longest_chain_height = new_block.height
 
             if len(self.selfish_miner.racing_blocks) > 0:
                 racing_blocks = self.selfish_miner.racing_blocks[:]
@@ -318,7 +323,7 @@ def main(config_file='selfish_config.json'):
                           race_count=config['race_count'])
     if config['honest_test']:
         monitor.selfish_miner.honest = True
-    monitor.run_simulation(config['simulation_iterations'])
+    monitor.run_simulation(config['simulation_longest_chain_blocks'])
 
 if __name__ == '__main__':
     import json

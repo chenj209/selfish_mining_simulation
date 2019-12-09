@@ -1,6 +1,6 @@
 {
   "random_seed": 2125,
-  "simulation_iterations": 500,
+  "simulation_longest_chain_blocks": 3,
   "pow_difficulty": 0.00005,
   "miner_count": 1000,
   "neighbour_count": 32,
