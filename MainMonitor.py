@@ -1,3 +1,5 @@
+import math
+
 from Block import Block
 
 PLOT_GRAPHVIZ = True
@@ -39,7 +41,7 @@ class MainMonitor:
             self.propagater_count = propagator_count
             self.selfish_miner = None
             # if configuration == "selfish1":
-            selfish_miner_hr = int(hash_power*miner_count/(1-selfish_miner_hash_power_in_percent)-miner_count*hash_power)
+            selfish_miner_hr = math.ceil(hash_power*miner_count/(1-selfish_miner_hash_power_in_percent)-miner_count*hash_power)
             self.selfish_miner = SelfishMiner(0, pow, delay, upload_bandwidth, download_bandwidth, selfish_miner_hr)
             selfish_propagaters = [SelfishPropagator(self.selfish_miner, i, pow, propagator_delay, propagator_upload_bandwidth, propagator_download_bandwidth) for i in range(1+self.miner_count,1+self.miner_count+self.propagater_count)]
             self.miners = [Miner(i, pow, delay, upload_bandwidth, download_bandwidth, hash_power) for i in range(1, miner_count+1)] \
@@ -132,6 +134,8 @@ class MainMonitor:
         regular_rewards, uncle_rewards = self.reward(blocks, last_block_id)
         total_rewards = sum(regular_rewards.values())+sum(uncle_rewards.values())
         print("Total rewards:", total_rewards)
+        print("Selfish rewards:", regular_rewards[0]+uncle_rewards[0])
+        print("Selfish rewards ratio:", (regular_rewards[0] + uncle_rewards[0])/total_rewards)
         print("regular reward dictionary:")
         print(regular_rewards)
         print("uncle reward dictionary:")
