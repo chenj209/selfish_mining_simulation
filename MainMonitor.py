@@ -1,5 +1,6 @@
 import math
-
+import sys
+sys.setrecursionlimit(10000)
 from Block import Block
 
 PLOT_GRAPHVIZ = True
@@ -243,7 +244,8 @@ class MainMonitor:
                 for i in range(regular_block.height, regular_block.height-generation_count, -1):
                     if i in uncle_candidates:
                         for uncle_id in uncle_candidates[i]:
-                            if regular_block.need_more_uncles and blocks[uncle_id].miner_id == regular_block.miner_id:
+                            if regular_block.need_more_uncles and blocks[uncle_id].miner_id == regular_block.miner_id \
+                                    and blocks[uncle_id].publish_timestamp <= regular_block.timestamp:
                                 blocks[regular_block.id].uncles.append(uncle_id)
                                 # remove uncle_id
                                 uncle_candidates[i].remove(uncle_id)
@@ -279,6 +281,11 @@ class MainMonitor:
                         for uncle_id in uncle_candidates[k]:
                             if regular_block.need_more_uncles and blocks[uncle_id].timestamp < regular_block.timestamp \
                                     and (blocks[uncle_id].miner_id != 0):
+                                blocks[regular_block.id].uncles.append(uncle_id)
+                                # remove uncle_id
+                                uncle_candidates[k].remove(uncle_id)
+                            if regular_block.need_more_uncles and blocks[uncle_id].publish_timestamp < regular_block.timestamp \
+                                    and (blocks[uncle_id].miner_id == 0):
                                 blocks[regular_block.id].uncles.append(uncle_id)
                                 # remove uncle_id
                                 uncle_candidates[k].remove(uncle_id)

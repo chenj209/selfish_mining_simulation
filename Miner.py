@@ -138,9 +138,15 @@ class SelfishMiner(Miner):
         self.racing_test = False
         self.honest = False
 
-    def publish_private_chain(self):
+    def publish_private_chain(self, received_publish_timestamp):
         print(f"Clock {self.clock}: Publish private chain!")
         for block in self.private_chain:
+            if received_publish_timestamp > block.timestamp:
+                block.publish_timestamp = received_publish_timestamp
+            else:
+                block.publish_timestamp = block.timestamp
+            print("check:block.timestamp: ", block.id, "--", block.timestamp)
+            print("check:block.publish_timestamp: ", block.id, "--", block.publish_timestamp)
             print(f"Private block {block.id}")
             super().update_blockchain(block)
             super().notify_neighbours(block)
@@ -183,7 +189,7 @@ class SelfishMiner(Miner):
                 if self.longest_chain_heads[0].height == self.private_chain[-1].height:
                     self.racing_blocks.append(self.private_chain[-1])
                     self.private_chain[-1].racing = True
-                self.publish_private_chain()
+                self.publish_private_chain(block.timestamp)
         else:
             if block.id not in self.blocks:
                 # selfish miner mined a block
