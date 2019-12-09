@@ -187,7 +187,15 @@ class MainMonitor:
 
         # assign nephew block reward
         for nephew_block in nephews:
+            # print("len(nephew_block.uncles): ", len(nephew_block.uncles))
+            regular_rewards[nephew_block.miner_id] += len(nephew_block.uncles)
+
+        '''
+        # assign nephew block reward
+        for nephew_block in nephews:
             regular_rewards[nephew_block.miner_id] += 1
+            
+        '''
 
         # assign uncle block reward
         uncle_ids = uncles.keys()
@@ -204,6 +212,24 @@ class MainMonitor:
             else:
                 temp_reward = 0
                 uncle_rewards[temp_miner_id] += temp_reward
+
+        '''
+        # assign uncle block reward
+        uncle_ids = uncles.keys()
+        for uncle_id in uncle_ids:
+            temp_miner_id = blocks[uncle_id].miner_id
+            # update key
+            if temp_miner_id not in uncle_rewards:
+                uncle_rewards[temp_miner_id] = 0
+            # compute reward amount
+            if uncles[uncle_id] <= 6:
+                temp_reward = (8 - uncles[uncle_id])*4
+                uncle_rewards[temp_miner_id] += temp_reward
+            # trivia but save for future modification
+            else:
+                temp_reward = 0
+                uncle_rewards[temp_miner_id] += temp_reward
+        '''
 
         return regular_rewards, uncle_rewards
 
@@ -254,7 +280,8 @@ class MainMonitor:
                 for i in range(regular_block.height, regular_block.height-generation_count, -1):
                     if i in uncle_candidates:
                         for uncle_id in uncle_candidates[i]:
-                            if regular_block.need_more_uncles and blocks[uncle_id].miner_id == regular_block.miner_id \
+                            print ("regular_block uncle test:", len(regular_block.uncles),"answer: ", regular_block.need_more_uncles())
+                            if regular_block.need_more_uncles() and blocks[uncle_id].miner_id == regular_block.miner_id \
                                     and blocks[uncle_id].publish_timestamp <= regular_block.timestamp:
                                 blocks[regular_block.id].uncles.append(uncle_id)
                                 # remove uncle_id
@@ -272,7 +299,8 @@ class MainMonitor:
                 for j in uncle_candidates.keys():
                     if j < regular_block.height:
                         for uncle_id in uncle_candidates[j]:
-                            if regular_block.need_more_uncles and blocks[uncle_id].timestamp < regular_block.timestamp:
+                            # print("regular_block uncle test:", len(regular_block.uncles), "answer: ", regular_block.need_more_uncles())
+                            if regular_block.need_more_uncles() and blocks[uncle_id].timestamp < regular_block.timestamp:
                                 blocks[regular_block.id].uncles.append(uncle_id)
                                 # remove uncle_id
                                 uncle_candidates[j].remove(uncle_id)
@@ -289,12 +317,13 @@ class MainMonitor:
                 for k in uncle_candidates.keys():
                     if k < regular_block.height:
                         for uncle_id in uncle_candidates[k]:
-                            if regular_block.need_more_uncles and blocks[uncle_id].timestamp < regular_block.timestamp \
+                            # print("regular_block uncle test:", len(regular_block.uncles), "answer: ", regular_block.need_more_uncles())
+                            if regular_block.need_more_uncles() and blocks[uncle_id].timestamp < regular_block.timestamp \
                                     and (blocks[uncle_id].miner_id != 0):
                                 blocks[regular_block.id].uncles.append(uncle_id)
                                 # remove uncle_id
                                 uncle_candidates[k].remove(uncle_id)
-                            if regular_block.need_more_uncles and blocks[uncle_id].publish_timestamp < regular_block.timestamp \
+                            if regular_block.need_more_uncles() and blocks[uncle_id].publish_timestamp < regular_block.timestamp \
                                     and (blocks[uncle_id].miner_id == 0):
                                 blocks[regular_block.id].uncles.append(uncle_id)
                                 # remove uncle_id

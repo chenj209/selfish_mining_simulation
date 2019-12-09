@@ -1,6 +1,6 @@
 {
   "random_seed": 2125,
-  "simulation_blocks": 200,
+  "simulation_blocks": 150,
   "pow_difficulty": 0.0001,
   "miner_count": 1000,
   "neighbour_count": 32,
@@ -15,5 +15,6 @@
   "propagator_download_bandwidth": 10,
   "honest_test": 0,
   "racing_test": 0,
-  "race_count": 100
+  "race_count": 100,
+  "hrs": [0.22]
 }
