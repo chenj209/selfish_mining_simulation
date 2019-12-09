@@ -106,8 +106,6 @@ class Miner:
         # process each received events that is greater than current clock time
         # up to self.download_bandwidth times, unprocessed events will be processed
         # in next timestamp
-        # if len(self.recv_events) > 0:
-        #     print("wtf")
         process_event(self, self.recv_events, self.download_bandwidth)
 
         new_blocks = []
@@ -122,8 +120,6 @@ class Miner:
         # process each send events that is greater than current clock time
         # up to self.upload_bandwidth times, unprocessed events will be processed
         # in next timestamp
-        # if len(self.send_events) > 0:
-            # print("wtf")
         process_event(self, self.send_events, self.upload_bandwidth)
         self.clock += 1
 
