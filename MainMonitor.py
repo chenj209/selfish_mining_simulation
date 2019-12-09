@@ -104,7 +104,7 @@ class MainMonitor:
 
             self.clock += 1
             if self.clock % 10 == 0 or new_block_flag:
-                print(f"Clock: {self.clock}, Block Count: {pow.block_count}")
+                print(f"Clock: {self.clock}, Block Count: {self.pow.block_count}")
                 if self.racing_test:
                     print(f"Race count: {len(self.propagation_rates)}")
             if new_block_flag and not self.racing_test:
@@ -304,10 +304,9 @@ class MainMonitor:
             temp_last_regular_block = regular_block
 
         return uncle_candidates
-    
-if __name__ == '__main__':
-    import json
-    config = json.load(open('selfish_config.json'))
+
+def main(config_file='selfish_config.json'):
+    config = json.load(open(config_file))
     pow = POW(config['pow_difficulty']*100000000000, 100000000000)
     random.seed(config['random_seed'])
     monitor = MainMonitor(pow, miner_count=config['miner_count'], neighbour_count=config['neighbour_count'],
@@ -320,6 +319,11 @@ if __name__ == '__main__':
     if config['honest_test']:
         monitor.selfish_miner.honest = True
     monitor.run_simulation(config['simulation_iterations'])
+
+if __name__ == '__main__':
+    import json
+    from fire import Fire
+    Fire(main)
 
 
 
