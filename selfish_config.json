@@ -1,6 +1,6 @@
 {
   "random_seed": 2125,
-  "simulation_blocks": 3,
+  "simulation_blocks": 150,
   "pow_difficulty": 0.00005,
   "miner_count": 1000,
   "neighbour_count": 32,
@@ -8,7 +8,7 @@
   "network_upload_bandwidth": 10,
   "network_download_bandwidth": 100000,
   "hash_power_per_miner": 1,
-  "selfish_miner_hash_power_in_percent": 0.3,
+  "selfish_miner_hash_power_in_percent": 0.20,
   "selfish_propagator_count": 0,
   "propagator_delay": 1,
   "propagator_upload_bandwidth": 10,

@@ -138,9 +138,13 @@ class MainMonitor:
             print("No propagation race")
         regular_rewards, uncle_rewards = self.reward(blocks, last_block_id)
         total_rewards = sum(regular_rewards.values())+sum(uncle_rewards.values())
-        print("Total rewards:", total_rewards)
+        selfish_rewards = regular_rewards.get(0, 0)+uncle_rewards.get(0, 0)
+        print("Total reward ratio:", selfish_rewards, " / ", total_rewards)
+        print("Uncle reward ratio:", uncle_rewards.get(0, 0), " / ", sum(uncle_rewards.values()))
+        print("Regular reward ratio:", regular_rewards.get(0, 0), " / ", sum(regular_rewards.values()))
         print("Selfish rewards:", regular_rewards.get(0, 0)+uncle_rewards.get(0, 0))
-        print("Selfish rewards ratio:", (regular_rewards.get(0, 0)+ uncle_rewards.get(0, 0))/total_rewards)
+        print("Selfish rewards ratio:", (regular_rewards.get(0, 0) + uncle_rewards.get(0, 0))/total_rewards)
+
         print("regular reward dictionary:")
         print(regular_rewards)
         print("uncle reward dictionary:")
@@ -149,11 +153,12 @@ class MainMonitor:
         #print(selfish_miner_rewards)
         print("Simulation Done!")
 
-    
-    # assume a block earns the miner 32 unit 
+
+    # assume a block earns the miner 32 unit
     def reward(self, blocks, last_block_id):
         longest_chain = self.find_longest_chain(blocks, last_block_id)
         new_blocks = self.assign_uncles(blocks, longest_chain)
+        # new_blocks = self.assign_uncles_all_selfish(blocks, longest_chain)
         uncles, nephews = self.find_uncles_nephews(new_blocks, longest_chain)
         # regular reward dict {miner_id: reward}
         regular_rewards = {}
@@ -168,7 +173,7 @@ class MainMonitor:
             # miner_id alreay exists
             else:
                 regular_rewards[regular_block.miner_id] += 32
-        
+
         # assign nephew block reward
         for nephew_block in nephews:
             regular_rewards[nephew_block.miner_id] += 1
@@ -188,7 +193,7 @@ class MainMonitor:
             else:
                 temp_reward = 0
                 uncle_rewards[temp_miner_id] += temp_reward
-    
+
         return regular_rewards, uncle_rewards
 
     def find_longest_chain(self, blocks, last_block_id):
@@ -202,7 +207,7 @@ class MainMonitor:
             temp_child_block = temp_parent_block
         longest_chain.append(temp_child_block)
         return longest_chain
-    
+
     def find_uncles_nephews(self, blocks, longest_chain):
         # uncle dict {uncle_id:distance}
         uncles = {}
@@ -217,8 +222,9 @@ class MainMonitor:
                 for uncle_id in regular_block.uncles:
                     distance = regular_block.height - blocks[uncle_id].height
                     uncles[uncle_id] = distance
-        
+
         return uncles, nephews
+
 
     def assign_uncles(self, blocks, longest_chain):
         print("start assign_uncles")
@@ -271,7 +277,73 @@ class MainMonitor:
                 for k in uncle_candidates.keys():
                     if k < regular_block.height:
                         for uncle_id in uncle_candidates[k]:
+                            if regular_block.need_more_uncles and blocks[uncle_id].timestamp < regular_block.timestamp \
+                                    and (blocks[uncle_id].miner_id != 0):
+                                blocks[regular_block.id].uncles.append(uncle_id)
+                                # remove uncle_id
+                                uncle_candidates[k].remove(uncle_id)
+                        '''
+                        # remove this entry if its empty
+                        if len(uncle_candidates[k]) == 0:
+                            del uncle_candidates[k]
+                        '''
+        print("Uncles have been assigned!")
+        return blocks
+
+    def assign_uncles_all_selfish(self, blocks, longest_chain):
+        print("start assign_uncles")
+        rev_longest_chain = longest_chain[-3::-1] # skip first two blocks
+        uncle_candidates = self.find_uncle_candidates(blocks, longest_chain)
+        for regular_block in rev_longest_chain:
+            #
+            # if this regular block is mined by a selfish miner (Rational)
+            if regular_block.miner_id == 0:
+                # self uncle check count
+                if regular_block.height < 6:
+                    generation_count = regular_block.height - 2
+                else:
+                    generation_count = 6
+                # find uncles mined by itself from current to previous height
+                for i in range(regular_block.height, regular_block.height-generation_count, -1):
+                    if i in uncle_candidates:
+                        for uncle_id in uncle_candidates[i]:
+                            if regular_block.need_more_uncles and blocks[uncle_id].miner_id == regular_block.miner_id:
+                                blocks[regular_block.id].uncles.append(uncle_id)
+                                # remove uncle_id
+                                uncle_candidates[i].remove(uncle_id)
+                        '''
+                        # remove this entry if its empty
+                        if len(uncle_candidates[i]) == 0:
+                            del uncle_candidates[i]
+                        '''
+
+
+                # find uncles mined by anyone
+                #while regular_block.need_more_uncles and len(uncle_candidates) > 0:
+                    #temp_list = uncle_candidates.keys().copy()
+                for j in uncle_candidates.keys():
+                    if j < regular_block.height:
+                        for uncle_id in uncle_candidates[j]:
                             if regular_block.need_more_uncles and blocks[uncle_id].timestamp < regular_block.timestamp:
+                                blocks[regular_block.id].uncles.append(uncle_id)
+                                # remove uncle_id
+                                uncle_candidates[j].remove(uncle_id)
+                        '''
+                        # remove this entry if its empty
+                        if len(uncle_candidates[j]) == 0:
+                            del uncle_candidates[j]
+                        '''
+
+
+            # regular block mined by honest miner
+            else:
+                #while regular_block.need_more_uncles and len(uncle_candidates) > 0:
+                    # temp_list = uncle_candidates.keys().copy()
+                for k in uncle_candidates.keys():
+                    if k < regular_block.height:
+                        for uncle_id in uncle_candidates[k]:
+                            if regular_block.need_more_uncles and blocks[uncle_id].timestamp < regular_block.timestamp\
+                                    and blocks[uncle_id].miner_id == regular_block.miner_id:
                                 blocks[regular_block.id].uncles.append(uncle_id)
                                 # remove uncle_id
                                 uncle_candidates[k].remove(uncle_id)
@@ -291,14 +363,12 @@ class MainMonitor:
 
 
 
-
-
     def find_uncle_candidates(self, blocks, longest_chain):
         # rev_longest_chain = longest_chain[::-1]
         uncle_candidates = {}  # {height:[uncle_id_1, uncle_id_2 ...]}
         temp_last_regular_block = Block(-1, -1, -1, -1, -1)
         for regular_block in longest_chain:
-            if len(regular_block.children) > 1:
+            if len(regular_block.children) >= 1:
                 for child_id in regular_block.children:
                     # not in the longest chain
                     if child_id != temp_last_regular_block.id:
@@ -307,6 +377,7 @@ class MainMonitor:
                         else:
                             uncle_candidates[blocks[child_id].height].append(child_id)
             temp_last_regular_block = regular_block
+        print("uncle_candidates", uncle_candidates)
 
         return uncle_candidates
 
