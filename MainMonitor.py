@@ -33,6 +33,8 @@ class MainMonitor:
                  hash_power=1, selfish_miner_hash_power_in_percent=0.3, propagator_count=100,
                  propagator_delay=0, propagator_upload_bandwidth=100, propagator_download_bandwidth=100, racing_test=False, race_count=0):
 
+        self.hash_power = hash_power
+        self.selfish_miner_hash_power_in_percent = selfish_miner_hash_power_in_percent
         self.racing_test = racing_test
         self.race_count = race_count
         if not racing_test:
@@ -109,19 +111,19 @@ class MainMonitor:
                         self.selfish_miner.racing_blocks.remove(block)
 
             self.clock += 1
-            if self.clock % 10 == 0 or new_block_flag:
+            if self.clock % 100 == 0 or new_block_flag:
                 print(f"Clock: {self.clock}, Block Count: {self.pow.block_count}")
                 if self.racing_test:
                     print(f"Race count: {len(self.propagation_rates)}")
-            if new_block_flag and not self.racing_test:
-                G = Digraph(comment="Blockchain state", format='png')
-                G.node(str(self.pow.prime_block.id), label=str(self.pow.prime_block))
-                for id in blocks:
-                    block = blocks[id]
-                    if id != 0:
-                        G.node(str(block.id), label=str(block), color=f"{'grey' if block.notified_miner_count == 0 else 'black'}")
-                        G.edge(str(block.id), str(blocks[block.parent_id].id))
-                print(self.pow.prime_block.subtree_str(blocks))
+            # if new_block_flag and not self.racing_test:
+            #     G = Digraph(comment="Blockchain state", format='png')
+            #     G.node(str(self.pow.prime_block.id), label=str(self.pow.prime_block))
+            #     for id in blocks:
+            #         block = blocks[id]
+            #         if id != 0:
+            #             G.node(str(block.id), label=str(block), color=f"{'grey' if block.notified_miner_count == 0 else 'black'}")
+            #             G.edge(str(block.id), str(blocks[block.parent_id].id))
+            #     print(self.pow.prime_block.subtree_str(blocks))
                 '''
                 if PLOT_GRAPHVIZ is True:
                     G.render(f'test-output/blockchain-clock-{self.clock}.gv', view=True)
@@ -145,6 +147,13 @@ class MainMonitor:
         print("Regular reward ratio:", regular_rewards.get(0, 0), " / ", sum(regular_rewards.values()))
         print("Selfish rewards:", regular_rewards.get(0, 0)+uncle_rewards.get(0, 0))
         print("Selfish rewards ratio:", (regular_rewards.get(0, 0) + uncle_rewards.get(0, 0))/total_rewards)
+        output = f"Selfish hr in percent: {self.selfish_miner_hash_power_in_percent}\n" \
+            + f"Selfish rewards ratio: {(regular_rewards.get(0, 0) + uncle_rewards.get(0, 0))/total_rewards}\n" \
+            + f"Total reward ratio: {selfish_rewards} / {total_rewards}\n" \
+            + f"Uncle reward ratio: {uncle_rewards.get(0, 0)} / {sum(uncle_rewards.values())} \n" \
+            + f"Regular reward ratio: {regular_rewards.get(0, 0)} / {sum(regular_rewards.values())}\n"
+
+
 
         print("regular reward dictionary:")
         print(regular_rewards)
@@ -153,6 +162,7 @@ class MainMonitor:
         #selfish_miner_rewards = regular_rewards[0]+uncle_rewards[0]
         #print(selfish_miner_rewards)
         print("Simulation Done!")
+        return output
 
 
     # assume a block earns the miner 32 unit
@@ -392,16 +402,57 @@ def main(config_file='selfish_config.json'):
     config = json.load(open(config_file))
     pow = POW(config['pow_difficulty']*100000000000, 100000000000)
     random.seed(config['random_seed'])
-    monitor = MainMonitor(pow, miner_count=config['miner_count'], neighbour_count=config['neighbour_count'],
-                          delay=config['network_delay'], upload_bandwidth=config['network_upload_bandwidth'],
-                          download_bandwidth=config['network_download_bandwidth'],
-                          hash_power=config['hash_power_per_miner'], selfish_miner_hash_power_in_percent=config['selfish_miner_hash_power_in_percent'],
-                          propagator_count=config['selfish_propagator_count'], propagator_delay=config['propagator_delay'],
-                          propagator_upload_bandwidth=config['propagator_upload_bandwidth'], propagator_download_bandwidth=config['propagator_download_bandwidth'], racing_test=bool(config['racing_test']),
-                          race_count=config['race_count'])
-    if config['honest_test']:
-        monitor.selfish_miner.honest = True
-    monitor.run_simulation(config['simulation_blocks'])
+    hrs = config.get('hrs', [])
+    if len(hrs) > 0:
+        for hr in hrs:
+            print(f"Running {hr}")
+            random.seed(config['random_seed'])
+            monitor = MainMonitor(pow, miner_count=config['miner_count'], neighbour_count=config['neighbour_count'],
+                                  delay=config['network_delay'], upload_bandwidth=config['network_upload_bandwidth'],
+                                  download_bandwidth=config['network_download_bandwidth'],
+                                  hash_power=config['hash_power_per_miner'],
+                                  selfish_miner_hash_power_in_percent=hr,
+                                  propagator_count=config['selfish_propagator_count'],
+                                  propagator_delay=config['propagator_delay'],
+                                  propagator_upload_bandwidth=config['propagator_upload_bandwidth'],
+                                  propagator_download_bandwidth=config['propagator_download_bandwidth'],
+                                  racing_test=bool(config['racing_test']),
+                                  race_count=config['race_count'])
+            output = "Selfish\n" + monitor.run_simulation(config['simulation_blocks'])
+            with open(f"selfish_hash_power_{hr}", "w") as f:
+                f.write(output)
+            pow = POW(config['pow_difficulty'] * 100000000000, 100000000000)
+            random.seed(config['random_seed'])
+            monitor = MainMonitor(pow, miner_count=config['miner_count'], neighbour_count=config['neighbour_count'],
+                                  delay=config['network_delay'], upload_bandwidth=config['network_upload_bandwidth'],
+                                  download_bandwidth=config['network_download_bandwidth'],
+                                  hash_power=config['hash_power_per_miner'],
+                                  selfish_miner_hash_power_in_percent=hr,
+                                  propagator_count=config['selfish_propagator_count'],
+                                  propagator_delay=config['propagator_delay'],
+                                  propagator_upload_bandwidth=config['propagator_upload_bandwidth'],
+                                  propagator_download_bandwidth=config['propagator_download_bandwidth'],
+                                  racing_test=bool(config['racing_test']),
+                                  race_count=config['race_count'])
+            monitor.selfish_miner.honest = True
+            output = "Honest\n" + monitor.run_simulation(config['simulation_blocks'])
+            with open(f"honest_hash_power_{hr}", "w") as f:
+                f.write(output)
+    else:
+
+
+
+        monitor = MainMonitor(pow, miner_count=config['miner_count'], neighbour_count=config['neighbour_count'],
+                              delay=config['network_delay'], upload_bandwidth=config['network_upload_bandwidth'],
+                              download_bandwidth=config['network_download_bandwidth'],
+                              hash_power=config['hash_power_per_miner'], selfish_miner_hash_power_in_percent=config['selfish_miner_hash_power_in_percent'],
+                              propagator_count=config['selfish_propagator_count'], propagator_delay=config['propagator_delay'],
+                              propagator_upload_bandwidth=config['propagator_upload_bandwidth'], propagator_download_bandwidth=config['propagator_download_bandwidth'], racing_test=bool(config['racing_test']),
+                              race_count=config['race_count'])
+        if config['honest_test']:
+            monitor.selfish_miner.honest = True
+        monitor.run_simulation(config['simulation_blocks'])
+
 
 if __name__ == '__main__':
     import json
