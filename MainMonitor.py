@@ -280,12 +280,18 @@ class MainMonitor:
                 for i in range(regular_block.height, regular_block.height-generation_count, -1):
                     if i in uncle_candidates:
                         for uncle_id in uncle_candidates[i]:
-                            print ("regular_block uncle test:", len(regular_block.uncles),"answer: ", regular_block.need_more_uncles())
+                            print("0uncle_id:", uncle_id)
+                            #print("regular_block uncle test:", len(regular_block.uncles),"answer: ", regular_block.need_more_uncles())
+                            print("regular_block uncle test:", len(regular_block.uncles), "answer: ", regular_block.need_more_uncles())
+                            print("blocks[uncle_id].miner_id == regular_block.miner_id:", "answer: ", blocks[uncle_id].miner_id == regular_block.miner_id)
+                            print("blocks[uncle_id].publish_timestamp <= regular_block.timestamp", "answer: ", blocks[uncle_id].publish_timestamp <= regular_block.timestamp)
                             if regular_block.need_more_uncles() and blocks[uncle_id].miner_id == regular_block.miner_id \
                                     and blocks[uncle_id].publish_timestamp <= regular_block.timestamp:
                                 blocks[regular_block.id].uncles.append(uncle_id)
                                 # remove uncle_id
+                                print("0before remove:", uncle_candidates[i])
                                 uncle_candidates[i].remove(uncle_id)
+                                print("0after remove:", uncle_candidates[i])
                         '''
                         # remove this entry if its empty
                         if len(uncle_candidates[i]) == 0:
@@ -297,13 +303,19 @@ class MainMonitor:
                 #while regular_block.need_more_uncles and len(uncle_candidates) > 0:
                     #temp_list = uncle_candidates.keys().copy()
                 for j in uncle_candidates.keys():
+
                     if j < regular_block.height:
                         for uncle_id in uncle_candidates[j]:
+                            print("1uncle_id:", uncle_id)
                             # print("regular_block uncle test:", len(regular_block.uncles), "answer: ", regular_block.need_more_uncles())
+                            print("regular_block uncle test:", len(regular_block.uncles), "answer: ", regular_block.need_more_uncles())
+                            print("blocks[uncle_id].timestamp < regular_block.timestamp:", "answer: ", blocks[uncle_id].timestamp < regular_block.timestamp)
                             if regular_block.need_more_uncles() and blocks[uncle_id].timestamp < regular_block.timestamp:
                                 blocks[regular_block.id].uncles.append(uncle_id)
                                 # remove uncle_id
+                                print("1before remove:", uncle_candidates[j])
                                 uncle_candidates[j].remove(uncle_id)
+                                print("1after remove:", uncle_candidates[j])
                         '''
                         # remove this entry if its empty
                         if len(uncle_candidates[j]) == 0:
@@ -315,19 +327,30 @@ class MainMonitor:
                 #while regular_block.need_more_uncles and len(uncle_candidates) > 0:
                     # temp_list = uncle_candidates.keys().copy()
                 for k in uncle_candidates.keys():
+
                     if k < regular_block.height:
                         for uncle_id in uncle_candidates[k]:
+                            print("2uncle_id:", uncle_id)
+                            print("regular_block uncle test:", len(regular_block.uncles), "answer: ", regular_block.need_more_uncles())
+                            print("blocks[uncle_id].timestamp < regular_block.timestamp:", "answer: ", blocks[uncle_id].timestamp < regular_block.timestamp)
+                            print("(blocks[uncle_id].miner_id != 0", "answer: ", (blocks[uncle_id].miner_id != 0))
                             # print("regular_block uncle test:", len(regular_block.uncles), "answer: ", regular_block.need_more_uncles())
-                            if regular_block.need_more_uncles() and blocks[uncle_id].timestamp < regular_block.timestamp \
-                                    and (blocks[uncle_id].miner_id != 0):
+                            if regular_block.need_more_uncles() and blocks[uncle_id].timestamp < regular_block.timestamp and (blocks[uncle_id].miner_id != 0):
                                 blocks[regular_block.id].uncles.append(uncle_id)
                                 # remove uncle_id
+                                print("2before remove:", uncle_candidates[k])
                                 uncle_candidates[k].remove(uncle_id)
-                            if regular_block.need_more_uncles() and blocks[uncle_id].publish_timestamp < regular_block.timestamp \
-                                    and (blocks[uncle_id].miner_id == 0):
+                                print("2after remove:", uncle_candidates[k])
+                            print("regular_block uncle test:", len(regular_block.uncles), "answer: ", regular_block.need_more_uncles())
+                            print("blocks[uncle_id].publish_timestamp < regular_block.timestamp:", "answer: ", blocks[uncle_id].publish_timestamp < regular_block.timestamp)
+                            print("(blocks[uncle_id].miner_id == 0", "answer: ", (blocks[uncle_id].miner_id == 0))
+                            if regular_block.need_more_uncles() and blocks[uncle_id].publish_timestamp < regular_block.timestamp and (blocks[uncle_id].miner_id == 0):
                                 blocks[regular_block.id].uncles.append(uncle_id)
                                 # remove uncle_id
+                                print(regular_block.id)
+                                print("3before remove:", uncle_candidates[k])
                                 uncle_candidates[k].remove(uncle_id)
+                                print("3after remove:", uncle_candidates[k])
                         '''
                         # remove this entry if its empty
                         if len(uncle_candidates[k]) == 0:

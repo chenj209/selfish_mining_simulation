@@ -1,5 +1,5 @@
 class Block:
-    def __init__(self, id, miner_id, timestamp, parent_id, height, uncle_ids=[]):
+    def __init__(self, id, miner_id, timestamp, parent_id, height):
         """
         Represent a block in the blockchain
         Args:
@@ -14,7 +14,7 @@ class Block:
         self.parent_id = parent_id
         self.children = [] # ids of children
         # self.other_children = [] # invalid childrens
-        self.uncles = uncle_ids # ids of uncles
+        self.uncles = [] # ids of uncles
         self.height = height
         self.notified_miner_count = 0
         self.pending_notified_miner_count = 1 # for the miner who mined the block
